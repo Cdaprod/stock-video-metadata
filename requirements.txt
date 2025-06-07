@@ -1,0 +1,8 @@
+# requirements.txt
+
+python-dotenv
+sqlalchemy
+psycopg2-binary
+minio
+weaviate-client
+pandas
