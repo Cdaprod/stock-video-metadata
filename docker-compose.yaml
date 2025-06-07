@@ -38,7 +38,7 @@ services:
     hostname: weaviate
     image: semitechnologies/weaviate:latest
     ports:
-      - "8080:8080"
+      - "8082:8080"
       - "50051:50051"
     restart: on-failure:0
     environment:
