@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ------------------------
   # PostgreSQL for Resolve
@@ -62,21 +60,21 @@ services:
     depends_on:
       - minio
 
-  # ------------------------
-  # Your Python app
-  # ------------------------
-  python-app:
-    build:
-      context: ./app
-      dockerfile: Dockerfile
-    image: cdaprod/python-app
-    hostname: python-app
-    depends_on:
-      - weaviate
-      - minio
-      - postgres
-    environment:
-      KEEP_CONTAINER_ALIVE: 'true'
+  # # ------------------------
+  # # Your Python app
+  # # ------------------------
+  # python-app:
+  #   build:
+  #     context: ./app
+  #     dockerfile: Dockerfile
+  #   image: cdaprod/python-app
+  #   hostname: python-app
+  #   depends_on:
+  #     - weaviate
+  #     - minio
+  #     - postgres
+  #   environment:
+  #     KEEP_CONTAINER_ALIVE: 'true'
 
 volumes:
   postgres-data:
