@@ -1,0 +1,36 @@
+{
+  "workspace_type": "video_batching",
+  "structure": "parent_directory_batching",
+  "notebook_location": "B:\\Video\\StockFootage\\Batches",
+  "session_metadata_location": null,
+  "output_directory": ".",
+  "batches_discovered": [
+    "well_pump"
+  ],
+  "ready_for_processing": true,
+  "last_scan": "2025-06-09T12:21:56.788991",
+  "configuration": {
+    "target_directories": [],
+    "include_patterns": [],
+    "ignore_patterns": [
+      ".git",
+      ".vscode",
+      "__pycache__",
+      ".DS_Store",
+      "node_modules",
+      ".ipynb_checkpoints",
+      "venv",
+      "env",
+      ".venv"
+    ],
+    "file_size_limits": {
+      "min_mb": 0,
+      "max_gb": 50
+    },
+    "batch_naming": {
+      "transform": "none",
+      "remove_prefixes": [],
+      "remove_suffixes": []
+    }
+  }
+}
