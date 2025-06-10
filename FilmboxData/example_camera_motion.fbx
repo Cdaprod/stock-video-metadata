@@ -1,0 +1,63 @@
+; FBX 7.4.0 project file
+FBXHeaderExtension:  {
+	FBXHeaderVersion: 1003
+	FBXVersion: 7400
+}
+
+Definitions:  {
+	Count: 2
+	ObjectType: "Camera" {
+		Count: 1
+	}
+	ObjectType: "Model" {
+		Count: 1
+	}
+}
+
+Objects:  {
+	Camera: 123456789, "Camera::MyCamera", "Camera" {
+		FieldOfView: 45
+	}
+	Model: 987654321, "Model::MyCamera", "Camera" {
+		Version: 232
+		Properties70:  {
+			P: "Lcl Translation", "Lcl Translation", "", "A",0,0,0
+			P: "Lcl Rotation", "Lcl Rotation", "", "A",0,0,0
+		}
+	}
+
+	AnimationStack: 1000, "AnimStack::CameraAnim", ""
+	AnimationLayer: 1001, "AnimLayer::BaseLayer", ""
+
+	AnimationCurveNode: 1002, "T_X", "AnimCurveNode::T_X" {
+		AnimationCurve: 1003 {
+			KeyTime: *3 {a:0,192442325555,384884651110}
+			KeyValueFloat: *3 {a:0.0, 1.0, 2.0}
+		}
+	}
+	AnimationCurveNode: 1004, "T_Y", "AnimCurveNode::T_Y" {
+		AnimationCurve: 1005 {
+			KeyTime: *3 {a:0,192442325555,384884651110}
+			KeyValueFloat: *3 {a:0.0, 0.5, 1.0}
+		}
+	}
+	AnimationCurveNode: 1006, "T_Z", "AnimCurveNode::T_Z" {
+		AnimationCurve: 1007 {
+			KeyTime: *3 {a:0,192442325555,384884651110}
+			KeyValueFloat: *3 {a:-5.0, -7.0, -10.0}
+		}
+	}
+}
+
+Connections:  {
+	C: "OO",987654321,123456789
+	C: "OO",123456789,0
+	C: "OO",1000,0
+	C: "OO",1001,1000
+	C: "OO",1002,1001
+	C: "OO",1004,1001
+	C: "OO",1006,1001
+	C: "OP",1002,987654321,"Lcl Translation"
+	C: "OP",1004,987654321,"Lcl Translation"
+	C: "OP",1006,987654321,"Lcl Translation"
+}

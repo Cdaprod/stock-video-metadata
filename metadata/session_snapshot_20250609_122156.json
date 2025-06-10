@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-06-09T12:21:56.788991",
+  "session_id": "20250609_122156",
+  "batch_summary": {
+    "well_pump": {
+      "video_count": 16,
+      "total_gb": 8.07
+    }
+  },
+  "total_batches": 1,
+  "total_videos": 16,
+  "configuration_used": {
+    "target_dirs": [],
+    "session_location": null
+  }
+}
