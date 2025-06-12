@@ -107,4 +107,23 @@ from config import interactive_batch_selection, save_workspace_info
 
 interactive_batch_selection("B:/Video/StockFootage")
 save_workspace_info()
-"""  
+"""
+
+# Add to scripts/config.py
+
+def should_include_directory(name: str, path: Path) -> bool:
+    """Exclude hidden/system folders, allow customization."""
+    ignored = {"System Volume Information", ".DS_Store", "__MACOSX"}
+    return not name.startswith('.') and name not in ignored
+
+def should_include_video_file(path: Path) -> bool:
+    """Basic filter for valid video files."""
+    return path.suffix.lower() in VIDEO_EXTENSIONS and path.stat().st_size > 1024 * 100  # >100KB
+
+def transform_batch_name(name: str) -> str:
+    """Transform raw directory names into normalized batch labels."""
+    return name.strip().replace(" ", "_").lower()
+
+def get_output_path(filename: str) -> Path:
+    """Generate output path inside metadata/."""
+    return Path(CONFIG["DEFAULT_OUTPUT_DIR"]) / filename
