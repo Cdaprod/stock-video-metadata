@@ -1,185 +1,179 @@
+# /scripts/enrichment.py
+
 import cv2
 from pathlib import Path
-from typing import List, Optional, Dict, Any, Callable
+from typing import List, Dict, Any, Callable
 from PIL import Image
 import pandas as pd
-from config import VIDEO_EXTENSIONS
-import torch, torchvision
-
-print(torch.__version__)
-print(torchvision.__version__)
+import torch
+from transformers import pipeline, BlipProcessor, BlipForConditionalGeneration
+from ultralytics import YOLO
+from scenedetect import VideoManager, SceneManager
+from scenedetect.detectors import ContentDetector
+import clip
+from keybert import KeyBERT
+from concurrent.futures import ThreadPoolExecutor
 
 class VideoEnricher:
-    def __init__(self, caption_model="nlpconnect/vit-gpt2-image-captioning", yolo_model="yolov8n.pt"):
-        self.captioner = None
-        self.yolom = None
-        self.has_yolo = False
-        self.enrichment_steps: List[Callable[[Image.Image, Dict[str, Any]], Dict[str, Any]]] = []
-        self._register_default_enrichments()
+    def __init__(
+        self,
+        caption_model: str = "Salesforce/blip2-opt-2.7b",
+        blip_fallback: str = "Salesforce/blip-image-captioning-base",
+        yolo_model: str = "yolov8n.pt",
+        yolo_conf: float = 0.5,
+        yolo_iou: float = 0.45,
+        clip_model: str = "ViT-B/32",
+        clip_threshold: float = 0.3,
+    ):
+        # device setup
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # Load BLIP caption model
+        # 1) Caption model: try BLIP2, fallback to BLIP
         try:
-            from transformers import pipeline
             self.captioner = pipeline(
                 "image-to-text",
                 model=caption_model,
-                device=-1  # CPU
+                device=0 if self.device=="cuda" else -1,
+                use_safetensors=True,
             )
-            print("✅ Captioning pipeline loaded")
-        except Exception as e:
-            print(f"⚠️ Could not load captioning model: {e}")
+        except Exception:
+            self.processor = BlipProcessor.from_pretrained(blip_fallback)
+            self.blip_model = BlipForConditionalGeneration.from_pretrained(blip_fallback).to(self.device)
+            self.captioner = None
 
-        # Load YOLO model
-        try:
-            from ultralytics import YOLO
-            self.yolom = YOLO(yolo_model)
-            self.has_yolo = True
-            print("✅ YOLO detection loaded")
-        except Exception as e:
-            print(f"⚠️ YOLO detection unavailable: {e}")
+        # 2) YOLO
+        self.yolo = YOLO(yolo_model)
+        self.yolo_conf, self.yolo_iou = yolo_conf, yolo_iou
 
-    def _register_default_enrichments(self):
-        self.enrichment_steps = [
+        # 3) CLIP
+        self.clip_model, self.clip_preprocess = clip.load(clip_model, device=self.device)
+        self.clip_threshold = clip_threshold
+
+        # 4) Keyword extractor
+        self.kw_model = KeyBERT()
+
+        # register steps
+        self.enrichment_steps: List[Callable[[Image.Image, Dict[str,Any]], Dict[str,Any]]] = [
             self._enrich_caption_and_keywords,
             self._enrich_yolo_objects,
             self._enrich_hybrid_description
         ]
 
-    def add_enrichment_step(self, step_fn: Callable[[Image.Image, Dict[str, Any]], Dict[str, Any]]):
-        self.enrichment_steps.append(step_fn)
-
-    def validate_paths(self, df, path_col="full_path", max_print=5):
-        """Check if all files exist."""
-        missing = 0
-        for _, row in df.iterrows():
-            exists = Path(row[path_col]).exists()
-            if not exists:
-                missing += 1
-                if missing <= max_print:
-                    print(f"❌ File missing: {row.get('filename','?')} -> {row[path_col]}")
-        if missing:
-            print(f"⚠️ {missing} files missing in inventory.")
-        else:
-            print("✅ All inventory files found.")
-
-    @staticmethod
-    def ensure_enrichment_columns(df, enrichment_cols):
-        for col in enrichment_cols:
-            if col not in df.columns:
-                df[col] = ""
-        return df
-
-    @staticmethod
-    def merge_existing_enrichment(df, enriched_csv, enrichment_cols):
-        if Path(enriched_csv).exists():
-            df_enriched = pd.read_csv(enriched_csv)
-            print(f"🧠 Merging from prior enrichment: {len(df_enriched)} rows")
-            df_enriched = df_enriched.set_index("filename")
-            for col in enrichment_cols:
-                if col in df_enriched.columns:
-                    df[col] = df.apply(
-                        lambda row: df_enriched.at[row['filename'], col]
-                            if ((col not in row) or not str(row[col]).strip())
-                            and row['filename'] in df_enriched.index
-                            and pd.notna(df_enriched.at[row['filename'], col])
-                            else row[col],
-                        axis=1
-                    )
-        return df
-
-    def extract_middle_frames(self, path: str, positions: tuple = (0.1, 0.5, 0.9)) -> List:
+    # -- Scene-based frame extraction --
+    def extract_scene_frames(self, path: str, max_scenes: int = 3) -> List[Any]:
+        video_manager = VideoManager([str(path)])
+        scene_manager = SceneManager()
+        scene_manager.add_detector(ContentDetector())
+        video_manager.set_downscale_factor()
+        video_manager.start()
+        scene_manager.detect_scenes(frame_source=video_manager)
+        scene_list = scene_manager.get_scene_list()
         cap = cv2.VideoCapture(path)
-        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        if total <= 0:
-            print(f"❌ Invalid video or zero frames: {path}")
-            cap.release()
-            return []
         frames = []
-        for pct in positions:
-            idx = min(total - 1, int(total * pct))
-            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        for i, (start, _) in enumerate(scene_list[:max_scenes]):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, start.get_frames())
             ret, frame = cap.read()
-            if not ret:
-                print(f"⚠️ Failed to read frame {idx} from {path}")
-            else:
+            if ret:
                 frames.append(frame)
         cap.release()
         return frames
 
-    def _enrich_caption_and_keywords(self, pil_img: Image.Image, context: Dict[str, Any]) -> Dict[str, Any]:
-        if self.captioner is None:
-            return {"AI_Description": "", "AI_Keywords": ""}
-        try:
-            out = self.captioner(pil_img, max_new_tokens=30)[0].get("generated_text", "")
-            words = [w.strip(".,").lower() for w in out.split() if len(w) > 3]
-            kws = list(dict.fromkeys(words))[:8]
-            return {"AI_Description": out, "AI_Keywords": ", ".join(kws)}
-        except Exception as e:
-            print(f"⚠️ Captioning error: {e}")
-            return {"AI_Description": "", "AI_Keywords": ""}
+    # -- Caption + Keywords with CLIP filtering --
+    def _enrich_caption_and_keywords(self, img: Image.Image, ctx: Dict[str,Any]) -> Dict[str,Any]:
+        # generate caption
+        if self.captioner:
+            cap = self.captioner(img, max_new_tokens=30)[0]["generated_text"]
+        else:
+            inputs = self.processor(images=img, return_tensors="pt").to(self.device)
+            out = self.blip_model.generate(**inputs)
+            cap = self.processor.decode(out[0], skip_special_tokens=True)
+        # CLIP filter
+        image_t = self.clip_preprocess(img).unsqueeze(0).to(self.device)
+        text_t  = clip.tokenize([cap]).to(self.device)
+        with torch.no_grad():
+            score = self.clip_model(image_t, text_t)[0].softmax(dim=-1).item()
+        if score < self.clip_threshold:
+            cap = ""
+        # keywords
+        kws = []
+        if cap:
+            kws = [k for k,_ in self.kw_model.extract_keywords(cap, top_n=8)]
+        return {"AI_Description": cap, "AI_Keywords": ", ".join(kws)}
 
-    def _enrich_yolo_objects(self, pil_img: Image.Image, context: Dict[str, Any]) -> Dict[str, Any]:
-        if not self.has_yolo:
-            return {"YOLO_Objects": ""}
-        try:
-            results = self.yolom.predict(source=pil_img, imgsz=640, conf=0.3)[0]
-            labels = {self.yolom.names[int(c)] for c in results.boxes.cls}
-            return {"YOLO_Objects": ", ".join(sorted(labels))}
-        except Exception as e:
-            print(f"⚠️ YOLO detection error: {e}")
-            return {"YOLO_Objects": ""}
+    # -- YOLO with stricter thresholds --
+    def _enrich_yolo_objects(self, img: Image.Image, ctx: Dict[str,Any]) -> Dict[str,Any]:
+        results = self.yolo.predict(source=img, imgsz=640, conf=self.yolo_conf, iou=self.yolo_iou)[0]
+        labels = []
+        for c, conf in zip(results.boxes.cls, results.boxes.conf):
+            if conf.item() >= self.yolo_conf:
+                labels.append(self.yolo.names[int(c)])
+        return {"YOLO_Objects": ", ".join(sorted(set(labels)))}
 
-    def _enrich_hybrid_description(self, pil_img: Image.Image, context: Dict[str, Any]) -> Dict[str, Any]:
-        desc = context.get("AI_Description", "")
-        yolo_objs = context.get("YOLO_Objects", "")
-        hybrid = (f"{desc} | Detected: {yolo_objs}" if desc and yolo_objs else desc or "")
+    # -- Hybrid description --
+    def _enrich_hybrid_description(self, img: Image.Image, ctx: Dict[str,Any]) -> Dict[str,Any]:
+        desc = ctx.get("AI_Description", "")
+        objs = ctx.get("YOLO_Objects", "")
+        hybrid = f"{desc} | Detected: {objs}" if desc and objs else desc
         return {"Hybrid_Description": hybrid}
 
-    def enrich_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        enrichment_cols = [
-            "AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"
-        ]
-        df = self.ensure_enrichment_columns(df, enrichment_cols)
-        records = []
-        for r in df.itertuples():
-            fname = r.filename
-            base = r._asdict()
-            path = r.full_path
-            if not Path(path).exists():
-                print(f"❌ File not found, skipping: {fname}")
-                rec = {**base, **{col: "" for col in enrichment_cols}}
-                records.append(rec)
-                continue
-
-            best_result = {col: base.get(col, "") for col in enrichment_cols}
-            
-            yolo_raw = best_result.get("YOLO_Objects")
-            yolo_list = str(yolo_raw).split(",") if isinstance(yolo_raw, str) else []
-            max_objs = len([obj for obj in yolo_list if obj.strip()])
-
-            for frame in self.extract_middle_frames(path):
-                pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                enrichments = {}
-                context = {**base, **best_result}
-                for step in self.enrichment_steps:
-                    enrichments.update(step(pil_img, context | enrichments))
-                    obj_raw = enrichments.get("YOLO_Objects", "")
-                    obj_list = str(obj_raw).split(",") if isinstance(obj_raw, str) else []
-                    obj_count = len([x for x in obj_list if x.strip()])
-                if obj_count > max_objs or not best_result["AI_Description"]:
-                    max_objs = obj_count
-                    best_result = {**best_result, **enrichments}
-
-            rec = {**base, **best_result, "Filename": fname}
-            records.append(rec)
-
-        cols = [
-            "filename", "batch_name", "full_path",
-            "AI_Description", "AI_Keywords",
-            "YOLO_Objects", "Hybrid_Description", "Filename"
-        ]
-        df_out = pd.DataFrame.from_records(records)
+    # -- Helpers for DataFrame columns & merging --
+    @staticmethod
+    def ensure_enrichment_columns(df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
         for c in cols:
+            if c not in df.columns:
+                df[c] = ""
+        return df
+
+    @staticmethod
+    def merge_existing_enrichment(df: pd.DataFrame, enriched_csv: str, cols: List[str]) -> pd.DataFrame:
+        if Path(enriched_csv).exists():
+            old = pd.read_csv(enriched_csv).set_index("filename")
+            for c in cols:
+                if c in old.columns:
+                    df[c] = df.apply(
+                        lambda r: old.at[r.filename, c] if not r[c] and r.filename in old.index else r[c],
+                        axis=1
+                    )
+        return df
+
+    # -- Per-file enrichment, for parallel execution --
+    def _enrich_one(self, row: Any) -> Dict[str,Any]:
+        base = row._asdict()
+        path = base["full_path"]
+        if not Path(path).exists():
+            return {**base, **{k: "" for k in ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]}}
+        # initial
+        best = {k: base.get(k, "") for k in ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]}
+        max_objs = len(best["YOLO_Objects"].split(",")) if best["YOLO_Objects"] else 0
+
+        # extract frames
+        frames = self.extract_scene_frames(path) or []
+        for f in frames:
+            img = Image.fromarray(cv2.cvtColor(f, cv2.COLOR_BGR2RGB))
+            ctx = {**base, **best}
+            new = {}
+            for step in self.enrichment_steps:
+                new.update(step(img, {**ctx, **new}))
+            obj_count = len(new.get("YOLO_Objects","").split(",")) if new.get("YOLO_Objects") else 0
+            if obj_count>max_objs or not best["AI_Description"]:
+                max_objs, best = obj_count, {**best, **new}
+
+        return {**base, **best, "Filename": base["filename"]}
+
+    # -- Main pipeline, with parallelization --
+    def enrich_dataframe(self, df: pd.DataFrame, enriched_csv: str = None) -> pd.DataFrame:
+        cols = ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]
+        df = self.ensure_enrichment_columns(df, cols)
+        if enriched_csv:
+            df = self.merge_existing_enrichment(df, enriched_csv, cols)
+
+        # parallel enrich
+        with ThreadPoolExecutor() as exe:
+            records = list(exe.map(self._enrich_one, df.itertuples()))
+
+        df_out = pd.DataFrame.from_records(records)
+        final_cols = ["filename","batch_name","full_path"] + cols + ["Filename"]
+        for c in final_cols:
             if c not in df_out.columns:
                 df_out[c] = ""
-        return df_out[cols]
+        return df_out[final_cols]
