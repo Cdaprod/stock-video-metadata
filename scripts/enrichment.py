@@ -163,7 +163,9 @@ class VideoEnricher:
                 context = {**base, **best_result}
                 for step in self.enrichment_steps:
                     enrichments.update(step(pil_img, context | enrichments))
-                obj_count = len(enrichments.get("YOLO_Objects", "").split(", ")) if enrichments.get("YOLO_Objects") else 0
+                    obj_raw = enrichments.get("YOLO_Objects", "")
+                    obj_list = str(obj_raw).split(",") if isinstance(obj_raw, str) else []
+                    obj_count = len([x for x in obj_list if x.strip()])
                 if obj_count > max_objs or not best_result["AI_Description"]:
                     max_objs = obj_count
                     best_result = {**best_result, **enrichments}
