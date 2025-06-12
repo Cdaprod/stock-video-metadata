@@ -1,5 +1,6 @@
 # /scripts/enrichment.py
 import cv2
+from typing import Optional
 from PIL import Image
 import pandas as pd
 
@@ -19,7 +20,7 @@ except Exception as e:
     captioner = None
     print(f"⚠️ Could not load captioning model ({e}); skipping captions")
 
-def extract_middle_frame(path: str) -> Image.Image | None:
+def extract_middle_frame(path: str) -> Optional[Image.Image]:
     """Extract the middle frame as a PIL Image, or return None on failure."""
     try:
         cap = cv2.VideoCapture(path)
