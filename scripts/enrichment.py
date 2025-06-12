@@ -1,7 +1,6 @@
-# /scripts/enrichment.py
-
 import cv2
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 from PIL import Image
 import pandas as pd
 from config import VIDEO_EXTENSIONS
@@ -29,7 +28,31 @@ except Exception as e:
     has_yolo = False
     print(f"⚠️ YOLO detection unavailable ({e})")
 
-def generate_caption_and_keywords(img: Image.Image):
+def extract_middle_frames(path: str, positions: tuple = (0.1, 0.5, 0.9)) -> List:
+    """
+    Grab a few key frames at given percentage positions of the video.
+    Returns list of raw BGR frames.
+    """
+    cap = cv2.VideoCapture(path)
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if total <= 0:
+        print(f"❌ Invalid video or zero frames: {path}")
+        cap.release()
+        return []
+    frames = []
+    for pct in positions:
+        idx = min(total - 1, int(total * pct))
+        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        ret, frame = cap.read()
+        if not ret:
+            print(f"⚠️ Failed to read frame {idx} from {path}")
+        else:
+            frames.append(frame)
+    cap.release()
+    print(f"🎞️ {Path(path).name} -- extracted {len(frames)} frames")
+    return frames
+
+def generate_caption_and_keywords(img: Image.Image) -> (str, str):
     """
     Produce (caption, comma-joined keywords) from a PIL image.
     """
@@ -40,113 +63,86 @@ def generate_caption_and_keywords(img: Image.Image):
         words = [w.strip(".,").lower() for w in out.split() if len(w) > 3]
         kws = list(dict.fromkeys(words))[:8]
         return out, ", ".join(kws)
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ Captioning error: {e}")
         return "", ""
 
-def extract_middle_frames(path: str, positions: tuple = (0.1, 0.5, 0.9)):
-    """Grab a few key frames at given percentage positions of the video. Returns list of raw BGR frames."""
-    cap = cv2.VideoCapture(path)
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    frames = []
-    if total <= 0:
-        cap.release()
-        return frames
-    for pct in positions:
-        idx = min(total - 1, int(total * pct))
-        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
-        ret, frame = cap.read()
-        if ret:
-            frames.append(frame)
-    cap.release()
-    return frames
+def detect_yolo_objects(img: Image.Image) -> List[str]:
+    """
+    Return sorted list of YOLO class names detected in the PIL image.
+    """
+    if not has_yolo:
+        return []
+    try:
+        results = yolom.predict(source=img, imgsz=640, conf=0.3)[0]
+        labels = {yolom.names[int(c)] for c in results.boxes.cls}
+        return sorted(labels)
+    except Exception as e:
+        print(f"⚠️ YOLO detection error: {e}")
+        return []
 
 def enrich_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Adds these candidate metadata columns:
-      - AI_Description:    AI-generated caption
-      - AI_Keywords:       AI-generated keywords
-      - YOLO_Objects:      YOLO labels
-      - Hybrid_Description:AI caption + 'Detected: ...'
-      - Filename:          (copy, for BlackBox use)
+    Idempotently adds/updates these metadata columns on top of `df`:
+      - AI_Description        (BLIP caption)
+      - AI_Keywords           (from BLIP)
+      - YOLO_Objects          (comma-list of detected labels)
+      - Hybrid_Description    (caption + "Detected: …")
+      - Filename              (mirror of filename for BlackBox)
+    Preserves any non-empty existing values.
     """
-
+    # allow lookup of any pre-existing enrichments
+    existing = df.set_index("filename", drop=False).to_dict("index")
     records = []
 
     for r in df.itertuples():
-        KEEP_EXISTING_FIELDS = [
-            "AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"
-        ]
+        fname = r.filename
+        base = existing.get(fname, {}).copy()
 
-        base = r._asdict()
-        has_existing = {
-            k: (k in base and isinstance(base[k], str) and base[k].strip())
-            for k in KEEP_EXISTING_FIELDS
-        }
+        # start with any prior non-empty values
+        best_cap    = base.get("AI_Description", "") or ""
+        best_kw     = base.get("AI_Keywords", "")    or ""
+        best_labels = (base.get("YOLO_Objects", "").split(", ")
+                       if base.get("YOLO_Objects") else [])
+        max_objs    = len(best_labels)
 
-        # If prior values exist, start from those
-        best_cap = base.get("AI_Description", "")
-        best_kw = base.get("AI_Keywords", "")
-        best_labels = (
-            base.get("YOLO_Objects", "").split(", ")
-            if has_existing.get("YOLO_Objects") else []
-        )
-        max_objs = len(best_labels)
-
-        # Override only if better
-        frames = extract_middle_frames(r.full_path)
-        if not frames:
-            print(f"⚠️ No frames extracted from {r.filename}")
-        for frame in frames:
-            pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-
-            try:
+        # only override if we find a frame with more objects
+        path = r.full_path
+        if not Path(path).exists():
+            print(f"❌ File not found, skipping: {fname}")
+        else:
+            for frame in extract_middle_frames(path):
+                pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
                 cap_desc, cap_kw = generate_caption_and_keywords(pil)
-            except Exception as e:
-                print(f"⚠️ Captioning failed for {r.filename}: {e}")
-                cap_desc, cap_kw = "", ""
+                labels = detect_yolo_objects(pil)
+                if len(labels) > max_objs:
+                    max_objs = len(labels)
+                    best_cap, best_kw, best_labels = cap_desc, cap_kw, labels
 
-            labels = []
-            if has_yolo:
-                try:
-                    res = yolom.predict(source=pil, imgsz=640, conf=0.3)[0]
-                    labels = sorted({yolom.names[int(c)] for c in res.boxes.cls})
-                except Exception as e:
-                    print(f"⚠️ YOLO failed on {r.filename}: {e}")
-                    labels = []
+        hybrid = (
+            f"{best_cap} | Detected: {', '.join(best_labels)}"
+            if best_cap and best_labels else best_cap or ""
+        )
 
-            # Prefer frame with more detected objects
-            if len(labels) > max_objs:
-                max_objs = len(labels)
-                best_cap, best_kw, best_labels = cap_desc, cap_kw, labels
-
-        records.append({
+        rec = {
             **base,
-            "AI_Description": best_cap,
-            "AI_Keywords": best_kw,
-            "YOLO_Objects": ", ".join(best_labels),
-            "Hybrid_Description": (
-                f"{best_cap} | Detected: {', '.join(best_labels)}"
-                if best_cap and best_labels else best_cap or ""
-            ),
-            "Filename": r.filename
-        })
+            "AI_Description":    best_cap,
+            "AI_Keywords":       best_kw,
+            "YOLO_Objects":      ", ".join(best_labels),
+            "Hybrid_Description": hybrid,
+            "Filename":          fname
+        }
+        records.append(rec)
 
     df_out = pd.DataFrame.from_records(records)
 
-    # Ensure all expected columns exist for compatibility
-    expected_cols = [
+    # enforce column order and presence
+    cols = [
         "filename", "batch_name", "full_path",
         "AI_Description", "AI_Keywords",
         "YOLO_Objects", "Hybrid_Description", "Filename"
     ]
-    for col in expected_cols:
-        if col not in df_out.columns:
-            df_out[col] = ""
-        
-        # Fill missing rows if records were skipped
-        if df_out.empty and not df.empty:
-            df_out = df.copy()
-            for col in expected_cols:
-                if col not in df_out.columns:
-                    df_out[col] = ""
-    return df_out[expected_cols]
+    for c in cols:
+        if c not in df_out.columns:
+            df_out[c] = ""
+    return df_out[cols]
