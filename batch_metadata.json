@@ -1,0 +1,179 @@
+{
+  "scan_time": "2025-06-09T12:21:29.834479",
+  "notebook_location": "B:\\Video\\StockFootage\\Batches",
+  "total_batches": 1,
+  "total_videos": 16,
+  "batches": {
+    "well_pump": {
+      "video_count": 16,
+      "total_size_bytes": 8665855667,
+      "total_size_mb": 8264.4,
+      "total_size_gb": 8.07,
+      "videos": [
+        {
+          "filename": "Z7V_1648.MP4",
+          "path": "well_pump\\Z7V_1648.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1648.MP4",
+          "size_bytes": 155917206,
+          "size_mb": 148.69,
+          "size_gb": 0.145,
+          "modified": "2025-06-04T12:27:32.075202",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1649.MP4",
+          "path": "well_pump\\Z7V_1649.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1649.MP4",
+          "size_bytes": 149874308,
+          "size_mb": 142.93,
+          "size_gb": 0.14,
+          "modified": "2025-06-04T12:27:32.132411",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1650.MP4",
+          "path": "well_pump\\Z7V_1650.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1650.MP4",
+          "size_bytes": 76845531,
+          "size_mb": 73.29,
+          "size_gb": 0.072,
+          "modified": "2025-06-04T12:27:32.178865",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1651.MP4",
+          "path": "well_pump\\Z7V_1651.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1651.MP4",
+          "size_bytes": 428794362,
+          "size_mb": 408.93,
+          "size_gb": 0.399,
+          "modified": "2025-06-04T12:27:32.234802",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1652.MP4",
+          "path": "well_pump\\Z7V_1652.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1652.MP4",
+          "size_bytes": 511327248,
+          "size_mb": 487.64,
+          "size_gb": 0.476,
+          "modified": "2025-06-04T12:27:32.291694",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1653.MP4",
+          "path": "well_pump\\Z7V_1653.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1653.MP4",
+          "size_bytes": 617669770,
+          "size_mb": 589.06,
+          "size_gb": 0.575,
+          "modified": "2025-06-04T12:27:31.661440",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1654.MP4",
+          "path": "well_pump\\Z7V_1654.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1654.MP4",
+          "size_bytes": 1123527816,
+          "size_mb": 1071.48,
+          "size_gb": 1.046,
+          "modified": "2025-06-04T12:27:32.352286",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1655.MP4",
+          "path": "well_pump\\Z7V_1655.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1655.MP4",
+          "size_bytes": 740731681,
+          "size_mb": 706.42,
+          "size_gb": 0.69,
+          "modified": "2025-06-04T12:27:32.411583",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1656.MP4",
+          "path": "well_pump\\Z7V_1656.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1656.MP4",
+          "size_bytes": 793689869,
+          "size_mb": 756.92,
+          "size_gb": 0.739,
+          "modified": "2025-06-04T12:27:31.712859",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1657.MP4",
+          "path": "well_pump\\Z7V_1657.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1657.MP4",
+          "size_bytes": 1705797600,
+          "size_mb": 1626.78,
+          "size_gb": 1.589,
+          "modified": "2025-06-04T12:27:31.757339",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1658.MP4",
+          "path": "well_pump\\Z7V_1658.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1658.MP4",
+          "size_bytes": 197671938,
+          "size_mb": 188.51,
+          "size_gb": 0.184,
+          "modified": "2025-06-04T12:27:31.817212",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1659.MP4",
+          "path": "well_pump\\Z7V_1659.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1659.MP4",
+          "size_bytes": 1103507741,
+          "size_mb": 1052.39,
+          "size_gb": 1.028,
+          "modified": "2025-06-04T12:27:31.871644",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1660.MP4",
+          "path": "well_pump\\Z7V_1660.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1660.MP4",
+          "size_bytes": 164425321,
+          "size_mb": 156.81,
+          "size_gb": 0.153,
+          "modified": "2025-06-04T12:27:31.930931",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1661.MP4",
+          "path": "well_pump\\Z7V_1661.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1661.MP4",
+          "size_bytes": 279300416,
+          "size_mb": 266.36,
+          "size_gb": 0.26,
+          "modified": "2025-06-04T12:27:31.986029",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1662.MP4",
+          "path": "well_pump\\Z7V_1662.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1662.MP4",
+          "size_bytes": 216081070,
+          "size_mb": 206.07,
+          "size_gb": 0.201,
+          "modified": "2025-06-04T12:27:32.473630",
+          "batch": "well_pump"
+        },
+        {
+          "filename": "Z7V_1663.MP4",
+          "path": "well_pump\\Z7V_1663.MP4",
+          "full_path": "B:\\Video\\StockFootage\\Batches\\well_pump\\Z7V_1663.MP4",
+          "size_bytes": 400693790,
+          "size_mb": 382.13,
+          "size_gb": 0.373,
+          "modified": "2025-06-04T12:27:32.029874",
+          "batch": "well_pump"
+        }
+      ],
+      "batch_id": "b79eed10",
+      "first_video": "Z7V_1648.MP4",
+      "last_modified": "2025-06-04T12:27:32.473630"
+    }
+  }
+}
