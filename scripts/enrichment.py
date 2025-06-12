@@ -67,13 +67,32 @@ def enrich_dataframe(df: pd.DataFrame) -> pd.DataFrame:
       - AI_Keywords:       AI-generated keywords
       - YOLO_Objects:      YOLO labels
       - Hybrid_Description:AI caption + 'Detected: ...'
-      - Filename:          (copy, for BlackBox)
+      - Filename:          (copy, for BlackBox use)
     """
-    records = []
-    for r in df.itertuples():
-        best_cap, best_kw, best_labels = "", "", []
-        max_objs = -1
 
+    records = []
+
+    for r in df.itertuples():
+        KEEP_EXISTING_FIELDS = [
+            "AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"
+        ]
+
+        base = r._asdict()
+        has_existing = {
+            k: (k in base and isinstance(base[k], str) and base[k].strip())
+            for k in KEEP_EXISTING_FIELDS
+        }
+
+        # If prior values exist, start from those
+        best_cap = base.get("AI_Description", "")
+        best_kw = base.get("AI_Keywords", "")
+        best_labels = (
+            base.get("YOLO_Objects", "").split(", ")
+            if has_existing.get("YOLO_Objects") else []
+        )
+        max_objs = len(best_labels)
+
+        # Override only if better
         frames = extract_middle_frames(r.full_path)
         if not frames:
             print(f"⚠️ No frames extracted from {r.filename}")
@@ -95,12 +114,13 @@ def enrich_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                     print(f"⚠️ YOLO failed on {r.filename}: {e}")
                     labels = []
 
+            # Prefer frame with more detected objects
             if len(labels) > max_objs:
                 max_objs = len(labels)
                 best_cap, best_kw, best_labels = cap_desc, cap_kw, labels
 
         records.append({
-            **r._asdict(),
+            **base,
             "AI_Description": best_cap,
             "AI_Keywords": best_kw,
             "YOLO_Objects": ", ".join(best_labels),
@@ -111,9 +131,16 @@ def enrich_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             "Filename": r.filename
         })
 
-    cols = [
+    df_out = pd.DataFrame.from_records(records)
+
+    # Ensure all expected columns exist for compatibility
+    expected_cols = [
         "filename", "batch_name", "full_path",
         "AI_Description", "AI_Keywords",
         "YOLO_Objects", "Hybrid_Description", "Filename"
     ]
-    return pd.DataFrame(records)[cols]
+    for col in expected_cols:
+        if col not in df_out.columns:
+            df_out[col] = ""
+
+    return df_out[expected_cols]
