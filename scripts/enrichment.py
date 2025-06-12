@@ -152,7 +152,10 @@ class VideoEnricher:
                 continue
 
             best_result = {col: base.get(col, "") for col in enrichment_cols}
-            max_objs = len(best_result.get("YOLO_Objects", "").split(", ")) if best_result.get("YOLO_Objects") else 0
+            
+            yolo_raw = best_result.get("YOLO_Objects")
+            yolo_list = str(yolo_raw).split(",") if isinstance(yolo_raw, str) else []
+            max_objs = len([obj for obj in yolo_list if obj.strip()])
 
             for frame in self.extract_middle_frames(path):
                 pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
