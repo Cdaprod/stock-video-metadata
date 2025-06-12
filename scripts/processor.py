@@ -66,7 +66,15 @@ class VideoBatchProcessor:
                 'batch_id': hashlib.md5(batch_name.encode()).hexdigest()[:8]
             }
         return meta
-
+        
+    def get_flat_inventory(self) -> pd.DataFrame:
+        """Returns a flat DataFrame of all videos across batches with standard metadata fields."""
+        meta = self.generate_metadata()
+        all_records = []
+        for batch in meta.get('batches', {}).values():
+            all_records.extend(batch.get('videos', []))
+        return pd.DataFrame(all_records)
+        
     def save_metadata(self, out_path: Path, as_csv=False):
         meta = self.generate_metadata()
         out_path = Path(out_path)

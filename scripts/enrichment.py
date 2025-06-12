@@ -1,17 +1,21 @@
-# /scripts/enrichment.py
-
 import cv2
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Callable
 from PIL import Image
 import pandas as pd
 from config import VIDEO_EXTENSIONS
+import torch, torchvision
+
+print(torch.__version__)
+print(torchvision.__version__)
 
 class VideoEnricher:
     def __init__(self, caption_model="nlpconnect/vit-gpt2-image-captioning", yolo_model="yolov8n.pt"):
         self.captioner = None
         self.yolom = None
         self.has_yolo = False
+        self.enrichment_steps: List[Callable[[Image.Image, Dict[str, Any]], Dict[str, Any]]] = []
+        self._register_default_enrichments()
 
         # Load BLIP caption model
         try:
@@ -33,6 +37,16 @@ class VideoEnricher:
             print("✅ YOLO detection loaded")
         except Exception as e:
             print(f"⚠️ YOLO detection unavailable: {e}")
+
+    def _register_default_enrichments(self):
+        self.enrichment_steps = [
+            self._enrich_caption_and_keywords,
+            self._enrich_yolo_objects,
+            self._enrich_hybrid_description
+        ]
+
+    def add_enrichment_step(self, step_fn: Callable[[Image.Image, Dict[str, Any]], Dict[str, Any]]):
+        self.enrichment_steps.append(step_fn)
 
     def validate_paths(self, df, path_col="full_path", max_print=5):
         """Check if all files exist."""
@@ -92,31 +106,36 @@ class VideoEnricher:
         cap.release()
         return frames
 
-    def generate_caption_and_keywords(self, img: Image.Image):
+    def _enrich_caption_and_keywords(self, pil_img: Image.Image, context: Dict[str, Any]) -> Dict[str, Any]:
         if self.captioner is None:
-            return "", ""
+            return {"AI_Description": "", "AI_Keywords": ""}
         try:
-            out = self.captioner(img, max_new_tokens=30)[0].get("generated_text", "")
+            out = self.captioner(pil_img, max_new_tokens=30)[0].get("generated_text", "")
             words = [w.strip(".,").lower() for w in out.split() if len(w) > 3]
             kws = list(dict.fromkeys(words))[:8]
-            return out, ", ".join(kws)
+            return {"AI_Description": out, "AI_Keywords": ", ".join(kws)}
         except Exception as e:
             print(f"⚠️ Captioning error: {e}")
-            return "", ""
+            return {"AI_Description": "", "AI_Keywords": ""}
 
-    def detect_yolo_objects(self, img: Image.Image):
+    def _enrich_yolo_objects(self, pil_img: Image.Image, context: Dict[str, Any]) -> Dict[str, Any]:
         if not self.has_yolo:
-            return []
+            return {"YOLO_Objects": ""}
         try:
-            results = self.yolom.predict(source=img, imgsz=640, conf=0.3)[0]
+            results = self.yolom.predict(source=pil_img, imgsz=640, conf=0.3)[0]
             labels = {self.yolom.names[int(c)] for c in results.boxes.cls}
-            return sorted(labels)
+            return {"YOLO_Objects": ", ".join(sorted(labels))}
         except Exception as e:
             print(f"⚠️ YOLO detection error: {e}")
-            return []
+            return {"YOLO_Objects": ""}
+
+    def _enrich_hybrid_description(self, pil_img: Image.Image, context: Dict[str, Any]) -> Dict[str, Any]:
+        desc = context.get("AI_Description", "")
+        yolo_objs = context.get("YOLO_Objects", "")
+        hybrid = (f"{desc} | Detected: {yolo_objs}" if desc and yolo_objs else desc or "")
+        return {"Hybrid_Description": hybrid}
 
     def enrich_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Main enrichment pass."""
         enrichment_cols = [
             "AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"
         ]
@@ -125,34 +144,30 @@ class VideoEnricher:
         for r in df.itertuples():
             fname = r.filename
             base = r._asdict()
-            best_cap = base.get("AI_Description", "") or ""
-            best_kw = base.get("AI_Keywords", "") or ""
-            best_labels = (base.get("YOLO_Objects", "").split(", ") if base.get("YOLO_Objects") else [])
-            max_objs = len(best_labels)
             path = r.full_path
             if not Path(path).exists():
                 print(f"❌ File not found, skipping: {fname}")
-            else:
-                for frame in self.extract_middle_frames(path):
-                    pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                    cap_desc, cap_kw = self.generate_caption_and_keywords(pil)
-                    labels = self.detect_yolo_objects(pil)
-                    if len(labels) > max_objs:
-                        max_objs = len(labels)
-                        best_cap, best_kw, best_labels = cap_desc, cap_kw, labels
-            hybrid = (
-                f"{best_cap} | Detected: {', '.join(best_labels)}"
-                if best_cap and best_labels else best_cap or ""
-            )
-            rec = {
-                **base,
-                "AI_Description": best_cap,
-                "AI_Keywords": best_kw,
-                "YOLO_Objects": ", ".join(best_labels),
-                "Hybrid_Description": hybrid,
-                "Filename": fname
-            }
+                rec = {**base, **{col: "" for col in enrichment_cols}}
+                records.append(rec)
+                continue
+
+            best_result = {col: base.get(col, "") for col in enrichment_cols}
+            max_objs = len(best_result.get("YOLO_Objects", "").split(", ")) if best_result.get("YOLO_Objects") else 0
+
+            for frame in self.extract_middle_frames(path):
+                pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                enrichments = {}
+                context = {**base, **best_result}
+                for step in self.enrichment_steps:
+                    enrichments.update(step(pil_img, context | enrichments))
+                obj_count = len(enrichments.get("YOLO_Objects", "").split(", ")) if enrichments.get("YOLO_Objects") else 0
+                if obj_count > max_objs or not best_result["AI_Description"]:
+                    max_objs = obj_count
+                    best_result = {**best_result, **enrichments}
+
+            rec = {**base, **best_result, "Filename": fname}
             records.append(rec)
+
         cols = [
             "filename", "batch_name", "full_path",
             "AI_Description", "AI_Keywords",
