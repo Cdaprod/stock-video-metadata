@@ -142,5 +142,11 @@ def enrich_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     for col in expected_cols:
         if col not in df_out.columns:
             df_out[col] = ""
-
+        
+        # Fill missing rows if records were skipped
+        if df_out.empty and not df.empty:
+            df_out = df.copy()
+            for col in expected_cols:
+                if col not in df_out.columns:
+                    df_out[col] = ""
     return df_out[expected_cols]
