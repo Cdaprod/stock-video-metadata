@@ -143,8 +143,17 @@ class VideoEnricher:
         if not Path(path).exists():
             return {**base, **{k: "" for k in ["AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"]}}
 
-        # Safely initialize "best" metadata
-        best = {k: base.get(k, "") for k in ["AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"]}
+        # Safely initialize "best" metadata - handle NaN values
+        best = {}
+        for k in ["AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"]:
+            val = base.get(k, "")
+            # Handle NaN or non-string values
+            if pd.isna(val) or not isinstance(val, str):
+                best[k] = ""
+            else:
+                best[k] = val
+
+        # Safely get YOLO object count
         yolo_val = best.get("YOLO_Objects", "")
         max_objs = len(yolo_val.split(",")) if isinstance(yolo_val, str) and yolo_val.strip() else 0
 
