@@ -77,26 +77,46 @@ class VideoEnricher:
 
     # -- Caption + Keywords with CLIP filtering --
     def _enrich_caption_and_keywords(self, img: Image.Image, ctx: Dict[str,Any]) -> Dict[str,Any]:
-        # generate caption
-        if self.captioner:
-            cap = self.captioner(img, max_new_tokens=30)[0]["generated_text"]
-        else:
-            inputs = self.processor(images=img, return_tensors="pt").to(self.device)
-            out = self.blip_model.generate(**inputs)
-            cap = self.processor.decode(out[0], skip_special_tokens=True)
-        # CLIP filter
-        image_t = self.clip_preprocess(img).unsqueeze(0).to(self.device)
-        text_t  = clip.tokenize([cap]).to(self.device)
-        with torch.no_grad():
-            score = self.clip_model(image_t, text_t)[0].softmax(dim=-1).item()
-        if score < self.clip_threshold:
+        cap = ""
+
+        try:
+            if self.captioner:
+                print("🧠 Using BLIP2 pipeline...", flush=True)
+                result = self.captioner(img, max_new_tokens=30)
+                cap = result[0].get("generated_text", "") if result else ""
+            else:
+                print("🧠 Using BLIP fallback...", flush=True)
+                inputs = self.processor(images=img, return_tensors="pt").to(self.device)
+                out = self.blip_model.generate(**inputs)
+                cap = self.processor.decode(out[0], skip_special_tokens=True)
+        except Exception as e:
+            print(f"⚠️ Caption generation failed: {e}", flush=True)
             cap = ""
-        # keywords
+
+        print(f"📝 Caption: {cap}", flush=True)
+
+        # Optional: disable CLIP filtering for now
+        # image_t = self.clip_preprocess(img).unsqueeze(0).to(self.device)
+        # text_t = clip.tokenize([cap]).to(self.device)
+        # with torch.no_grad():
+        #     score = self.clip_model(image_t, text_t)[0].softmax(dim=-1).item()
+        #     print(f"🎯 CLIP score: {score}", flush=True)
+        # if score < self.clip_threshold:
+        #     cap = ""
+
         kws = []
         if cap:
-            kws = [k for k,_ in self.kw_model.extract_keywords(cap, top_n=8)]
-        return {"AI_Description": cap, "AI_Keywords": ", ".join(kws)}
+            try:
+                kws = [k for k, _ in self.kw_model.extract_keywords(cap, top_n=8)]
+            except Exception as e:
+                print(f"⚠️ Keyword extraction failed: {e}", flush=True)
+                kws = []
 
+        return {
+            "AI_Description": cap,
+            "AI_Keywords": ", ".join(kws)
+        }
+        
     # -- YOLO with stricter thresholds --
     def _enrich_yolo_objects(self, img: Image.Image, ctx: Dict[str,Any]) -> Dict[str,Any]:
         results = self.yolo.predict(source=img, imgsz=640, conf=self.yolo_conf, iou=self.yolo_iou)[0]
