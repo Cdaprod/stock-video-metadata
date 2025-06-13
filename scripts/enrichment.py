@@ -134,39 +134,34 @@ class VideoEnricher:
                         axis=1
                     )
         return df
-
+    
     def _enrich_one(self, row: Any) -> Dict[str, Any]:
-        base = row._asdict()
-        path = base["full_path"]
+        base_raw = row._asdict()
 
+        # Sanitize all values to ensure no NaN or float when expecting str
+        base = {
+            k: ("" if pd.isna(v) or isinstance(v, float) else v)
+            for k, v in base_raw.items()
+        }
+
+        path = base["full_path"]
         if not Path(path).exists():
             return {**base, **{k: "" for k in ["AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"]}}
 
-        # Safely initialize "best" metadata - handle NaN values
-        best = {}
-        for k in ["AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"]:
-            val = base.get(k, "")
-            # Handle NaN or non-string values
-            if pd.isna(val) or not isinstance(val, str):
-                best[k] = ""
-            else:
-                best[k] = val
+        best = {k: base.get(k, "") for k in ["AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"]}
 
-        # Safely get YOLO object count
+        # Count YOLO objects safely
         yolo_val = best.get("YOLO_Objects", "")
         max_objs = len(yolo_val.split(",")) if isinstance(yolo_val, str) and yolo_val.strip() else 0
 
-        # Extract frames
         frames = self.extract_scene_frames(path) or []
         for f in frames:
             img = Image.fromarray(cv2.cvtColor(f, cv2.COLOR_BGR2RGB))
             ctx = {**base, **best}
             new = {}
-
             for step in self.enrichment_steps:
                 new.update(step(img, {**ctx, **new}))
 
-            # Safely parse new YOLO object count
             yolo_obj = new.get("YOLO_Objects", "")
             obj_count = len(yolo_obj.split(",")) if isinstance(yolo_obj, str) and yolo_obj.strip() else 0
 
@@ -175,7 +170,7 @@ class VideoEnricher:
                 best = {**best, **new}
 
         return {**base, **best, "Filename": base["filename"]}
-                
+    
     # -- Main pipeline, with parallelization --
     def enrich_dataframe(self, df: pd.DataFrame, enriched_csv: str = None) -> pd.DataFrame:
         cols = ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]
