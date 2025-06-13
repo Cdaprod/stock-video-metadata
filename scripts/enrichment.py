@@ -158,12 +158,16 @@ class VideoEnricher:
             new = {}
             for step in self.enrichment_steps:
                 new.update(step(img, {**ctx, **new}))
-            obj_count = len(new.get("YOLO_Objects","").split(",")) if new.get("YOLO_Objects") else 0
-            if obj_count>max_objs or not best["AI_Description"]:
+            
+            yolo_obj = new.get("YOLO_Objects", "")
+            if isinstance(yolo_obj, str) and yolo_obj.strip():
+                obj_count = len(yolo_obj.split(","))
+            else:
+                obj_count = 0
+
+            if obj_count > max_objs or not best["AI_Description"]:
                 max_objs, best = obj_count, {**best, **new}
-
-        return {**base, **best, "Filename": base["filename"]}
-
+                
     # -- Main pipeline, with parallelization --
     def enrich_dataframe(self, df: pd.DataFrame, enriched_csv: str = None) -> pd.DataFrame:
         cols = ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]
