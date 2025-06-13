@@ -1,17 +1,17 @@
-batch_name,filename,full_path,size_bytes,modified,Description,Keywords,Filename
-well_pump,Z7V_1648.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1648.MP4,155917206,2025-06-04T12:27:32.075202,a bird is standing on a metal pole ,"bird, standing, metal, pole",Z7V_1648.MP4
-well_pump,Z7V_1649.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1649.MP4,149874308,2025-06-04T12:27:32.132411,a fire hydrant with a hose attached to it ,"fire, hydrant, with, hose, attached",Z7V_1649.MP4
-well_pump,Z7V_1650.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1650.MP4,76845531,2025-06-04T12:27:32.178865,a water bottle is sitting on a metal pole ,"water, bottle, sitting, metal, pole",Z7V_1650.MP4
-well_pump,Z7V_1651.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1651.MP4,428794362,2025-06-04T12:27:32.234802,a person spraying water into a water fountain ,"person, spraying, water, into, fountain",Z7V_1651.MP4
-well_pump,Z7V_1652.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1652.MP4,511327248,2025-06-04T12:27:32.291694,a metal object with a black handle attached to it ,"metal, object, with, black, handle, attached",Z7V_1652.MP4
-well_pump,Z7V_1653.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1653.MP4,617669770,2025-06-04T12:27:31.661440,a metal fence with a metal wire attached to it ,"metal, fence, with, wire, attached",Z7V_1653.MP4
-well_pump,Z7V_1654.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1654.MP4,1123527816,2025-06-04T12:27:32.352286,a man is holding a green and white fire hydrant ,"holding, green, white, fire, hydrant",Z7V_1654.MP4
-well_pump,Z7V_1655.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1655.MP4,740731681,2025-06-04T12:27:32.411583,a man holding a camera and a water bottle ,"holding, camera, water, bottle",Z7V_1655.MP4
-well_pump,Z7V_1656.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1656.MP4,793689869,2025-06-04T12:27:31.712859,a water bottle is sitting on a fence ,"water, bottle, sitting, fence",Z7V_1656.MP4
-well_pump,Z7V_1657.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1657.MP4,1705797600,2025-06-04T12:27:31.757339,a person is spraying a water bottle with a hose ,"person, spraying, water, bottle, with, hose",Z7V_1657.MP4
-well_pump,Z7V_1658.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1658.MP4,197671938,2025-06-04T12:27:31.817212,a black and silver fire hydrant with a black top ,"black, silver, fire, hydrant, with",Z7V_1658.MP4
-well_pump,Z7V_1659.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1659.MP4,1103507741,2025-06-04T12:27:31.871644,a black and white fire hydrant on a pole ,"black, white, fire, hydrant, pole",Z7V_1659.MP4
-well_pump,Z7V_1660.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1660.MP4,164425321,2025-06-04T12:27:31.930931,a fire hydrant with a hose attached to it ,"fire, hydrant, with, hose, attached",Z7V_1660.MP4
-well_pump,Z7V_1661.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1661.MP4,279300416,2025-06-04T12:27:31.986029,a fire hydrant with a hose attached to it ,"fire, hydrant, with, hose, attached",Z7V_1661.MP4
-well_pump,Z7V_1662.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1662.MP4,216081070,2025-06-04T12:27:32.473630,a wet sidewalk with a hose and a fire hydrant ,"sidewalk, with, hose, fire, hydrant",Z7V_1662.MP4
-well_pump,Z7V_1663.MP4,B:\Video\StockFootage\Batches\well_pump\Z7V_1663.MP4,400693790,2025-06-04T12:27:32.029874,a person pouring water into a water fountain ,"person, pouring, water, into, fountain",Z7V_1663.MP4
+filename,batch_name,full_path,AI_Description,AI_Keywords,YOLO_Objects,Hybrid_Description,Filename
+Z7V_1648.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1648.MP4,,,"bottle, fire hydrant",,Z7V_1648.MP4
+Z7V_1649.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1649.MP4,,,"bottle, fire hydrant",,Z7V_1649.MP4
+Z7V_1650.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1650.MP4,,,fire hydrant,,Z7V_1650.MP4
+Z7V_1651.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1651.MP4,,,,,Z7V_1651.MP4
+Z7V_1652.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1652.MP4,,,,,Z7V_1652.MP4
+Z7V_1653.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1653.MP4,,,,,Z7V_1653.MP4
+Z7V_1654.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1654.MP4,,,"fire hydrant, person",,Z7V_1654.MP4
+Z7V_1655.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1655.MP4,,,fire hydrant,,Z7V_1655.MP4
+Z7V_1656.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1656.MP4,,,,,Z7V_1656.MP4
+Z7V_1657.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1657.MP4,,,person,,Z7V_1657.MP4
+Z7V_1658.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1658.MP4,,,,,Z7V_1658.MP4
+Z7V_1659.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1659.MP4,,,,,Z7V_1659.MP4
+Z7V_1660.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1660.MP4,,,,,Z7V_1660.MP4
+Z7V_1661.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1661.MP4,,,,,Z7V_1661.MP4
+Z7V_1662.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1662.MP4,,,,,Z7V_1662.MP4
+Z7V_1663.MP4,well_pump,B:\Video\StockFootage\Batches\well_pump\Z7V_1663.MP4,,,vase,,Z7V_1663.MP4
