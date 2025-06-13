@@ -136,37 +136,37 @@ class VideoEnricher:
                     )
         return df
 
-    # -- Per-file enrichment, for parallel execution --
-    def _enrich_one(self, row: Any) -> Dict[str,Any]:
+    def _enrich_one(self, row: Any) -> Dict[str, Any]:
         base = row._asdict()
         path = base["full_path"]
-        if not Path(path).exists():
-            return {**base, **{k: "" for k in ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]}}
-        # initial
-        best = {k: base.get(k, "") for k in ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]}
-        yolo_val = best.get("YOLO_Objects", "")
-        if isinstance(yolo_val, str) and yolo_val.strip():
-            max_objs = len(yolo_val.split(","))
-        else:
-            max_objs = 0
 
-        # extract frames
+        if not Path(path).exists():
+            return {**base, **{k: "" for k in ["AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"]}}
+
+        # Safely initialize "best" metadata
+        best = {k: base.get(k, "") for k in ["AI_Description", "AI_Keywords", "YOLO_Objects", "Hybrid_Description"]}
+        yolo_val = best.get("YOLO_Objects", "")
+        max_objs = len(yolo_val.split(",")) if isinstance(yolo_val, str) and yolo_val.strip() else 0
+
+        # Extract frames
         frames = self.extract_scene_frames(path) or []
         for f in frames:
             img = Image.fromarray(cv2.cvtColor(f, cv2.COLOR_BGR2RGB))
             ctx = {**base, **best}
             new = {}
+
             for step in self.enrichment_steps:
                 new.update(step(img, {**ctx, **new}))
-            
-            yolo_obj = new.get("YOLO_Objects", "")
-            if isinstance(yolo_obj, str) and yolo_obj.strip():
-                obj_count = len(yolo_obj.split(","))
-            else:
-                obj_count = 0
 
-            if obj_count > max_objs or not best["AI_Description"]:
-                max_objs, best = obj_count, {**best, **new}
+            # Safely parse new YOLO object count
+            yolo_obj = new.get("YOLO_Objects", "")
+            obj_count = len(yolo_obj.split(",")) if isinstance(yolo_obj, str) and yolo_obj.strip() else 0
+
+            if obj_count > max_objs or not best.get("AI_Description"):
+                max_objs = obj_count
+                best = {**best, **new}
+
+        return {**base, **best, "Filename": base["filename"]}
                 
     # -- Main pipeline, with parallelization --
     def enrich_dataframe(self, df: pd.DataFrame, enriched_csv: str = None) -> pd.DataFrame:
