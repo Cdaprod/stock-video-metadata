@@ -125,6 +125,8 @@ class VideoEnricher:
     def merge_existing_enrichment(df: pd.DataFrame, enriched_csv: str, cols: List[str]) -> pd.DataFrame:
         if Path(enriched_csv).exists():
             old = pd.read_csv(enriched_csv).set_index("filename")
+            # Fill NaN values with empty strings in the old data
+            old = old.fillna("")
             for c in cols:
                 if c in old.columns:
                     df[c] = df.apply(
@@ -178,6 +180,10 @@ class VideoEnricher:
     def enrich_dataframe(self, df: pd.DataFrame, enriched_csv: str = None) -> pd.DataFrame:
         cols = ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]
         df = self.ensure_enrichment_columns(df, cols)
+        
+        # Fill NaN values with empty strings before processing
+        df = df.fillna("")
+        
         if enriched_csv:
             df = self.merge_existing_enrichment(df, enriched_csv, cols)
 
