@@ -1,5 +1,41 @@
 services:
   # ------------------------
+  # Python Notebook Server
+  # ------------------------
+  enrichment-lab:
+    build: .
+    container_name: enrichment-lab
+    ports:
+      - "8888"
+    volumes:
+      - ./scripts:/app/scripts
+      - ./metadata:/app/metadata
+      - ./data:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    runtime: nvidia
+
+  enrich:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: enrichment:latest
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./notebooks:/workspace/notebooks
+      - ./B/Video/StockFootage:/workspace/videos
+      - ./metadata:/workspace/outputs
+    ports:
+      - "8888:8888"
+
+  # ------------------------
   # PostgreSQL for Resolve
   # ------------------------
   postgres:

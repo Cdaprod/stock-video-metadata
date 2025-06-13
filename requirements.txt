@@ -6,3 +6,31 @@ psycopg2-binary
 minio
 weaviate-client
 pandas
+
+
+# notebook part-3 requirements.txt
+
+# 🧠 Core AI + Torch (CUDA 11.8)
+torch==2.2.2+cu118
+torchvision==0.17.2+cu118
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+# 📦 Transformers + BLIP/CLIP/KeyBERT
+transformers==4.31.0
+huggingface_hub==0.25.2
+sentence-transformers==2.2.2
+keybert==0.9.0
+tokenizers==0.13.3
+openai-clip
+
+# 🕵️ Object Detection
+ultralytics
+
+# 🎞️ Scene Detection + Image/Video
+scenedetect
+opencv-python
+pillow
+
+# 🧰 Utilities
+pandas
+accelerate==0.32.1

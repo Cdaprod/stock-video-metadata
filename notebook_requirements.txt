@@ -1,0 +1,29 @@
+# notebook_requirements.txt
+
+# Torch + CUDA
+torch==2.2.2+cu118
+torchvision==0.17.2+cu118
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+# Transformers & BLIP/CLIP
+transformers==4.31.0
+huggingface_hub==0.25.2
+sentence-transformers==2.2.2
+keybert==0.9.0
+tokenizers==0.13.3
+git+https://github.com/openai/CLIP.git
+
+# YOLO & SceneDetect
+ultralytics
+scenedetect
+
+# Image / Video
+opencv-python
+pillow
+
+# Utility
+pandas
+accelerate==0.32.1
+
+# Jupyter
+jupyterlab
