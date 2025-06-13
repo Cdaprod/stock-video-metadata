@@ -144,7 +144,11 @@ class VideoEnricher:
             return {**base, **{k: "" for k in ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]}}
         # initial
         best = {k: base.get(k, "") for k in ["AI_Description","AI_Keywords","YOLO_Objects","Hybrid_Description"]}
-        max_objs = len(best["YOLO_Objects"].split(",")) if best["YOLO_Objects"] else 0
+        yolo_val = best.get("YOLO_Objects", "")
+        if isinstance(yolo_val, str) and yolo_val.strip():
+            max_objs = len(yolo_val.split(","))
+        else:
+            max_objs = 0
 
         # extract frames
         frames = self.extract_scene_frames(path) or []
