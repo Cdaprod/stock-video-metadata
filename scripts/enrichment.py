@@ -8,8 +8,7 @@ import pandas as pd
 import torch
 from transformers import pipeline, BlipProcessor, BlipForConditionalGeneration
 from ultralytics import YOLO
-from scenedetect import VideoManager, SceneManager
-from scenedetect.detectors import ContentDetector
+from scenedetect import detect, ContentDetector
 import clip
 from keybert import KeyBERT
 from concurrent.futures import ThreadPoolExecutor
@@ -61,20 +60,18 @@ class VideoEnricher:
 
     # -- Scene-based frame extraction --
     def extract_scene_frames(self, path: str, max_scenes: int = 3) -> List[Any]:
-        video_manager = VideoManager([str(path)])
-        scene_manager = SceneManager()
-        scene_manager.add_detector(ContentDetector())
-        video_manager.set_downscale_factor()
-        video_manager.start()
-        scene_manager.detect_scenes(frame_source=video_manager)
-        scene_list = scene_manager.get_scene_list()
+        # Use modern PySceneDetect API
+        scene_list = detect(str(path), ContentDetector())
+        
         cap = cv2.VideoCapture(path)
         frames = []
+        
         for i, (start, _) in enumerate(scene_list[:max_scenes]):
             cap.set(cv2.CAP_PROP_POS_FRAMES, start.get_frames())
             ret, frame = cap.read()
             if ret:
                 frames.append(frame)
+        
         cap.release()
         return frames
 
