@@ -1,6 +1,19 @@
 import os
 import cv2
-import openai
+
+try:
+    import openai
+    from openai._base_client import SyncHttpxClientWrapper
+    # Only patch if openai is older than 1.56
+    if tuple(map(int, openai.__version__.split("."))) <= (1, 55, 3):
+        class NoProxiesWrapper(SyncHttpxClientWrapper):
+            def __init__(self, *args, **kwargs):
+                kwargs.pop("proxies", None)
+                super().__init__(*args, **kwargs)
+        openai._base_client.SyncHttpxClientWrapper = NoProxiesWrapper
+except Exception as e:
+    print(f"OpenAI patch failed (may be unnecessary): {e}")
+    
 import torch
 import clip
 import json
