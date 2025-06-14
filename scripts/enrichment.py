@@ -30,6 +30,7 @@ from keybert import KeyBERT
 from pytesseract import image_to_string
 
 from scripts.llm import MetadataLLM
+from scripts.vtt import VideoToText
 
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
@@ -46,6 +47,7 @@ class VideoEnricher:
         clip_model: str = "ViT-B/32",
         clip_threshold: float = 0.3,
     ):
+        self.vtt = VideoToText()
         self.llm = llm if llm is not None else MetadataLLM()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -72,6 +74,7 @@ class VideoEnricher:
         self.kw_model = KeyBERT()
 
         self.steps: List[Callable[[str, Image.Image, Dict[str, Any]], Dict[str, Any]]] = []
+        self.register_step(self._enrich_video_caption)
         self.register_step(self._enrich_caption_and_keywords)
         self.register_step(self._enrich_clip_filter)
         self.register_step(self._enrich_yolo_objects)
@@ -185,6 +188,19 @@ class VideoEnricher:
 
     def _refine_metadata(self, initial_meta):
         return self.llm.refine_metadata(initial_meta)
+        
+    def _enrich_video_caption(self, path: str, img: Image.Image, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Try a full-video caption first. If it fails or is empty, 
+        the next step (_enrich_caption_and_keywords) will run as a fallback.
+        """
+        try:
+            desc = self.vtt.generate_description(path)
+            if desc:
+                return {"AI_Description": desc}
+        except Exception as e:
+            print(f"[vtt.py] ⚠️ VideoToText failed: {e}", flush=True)
+        return {}
 
     def _enrich_one(self, row: Any) -> Dict[str, Any]:
         base = row._asdict()
