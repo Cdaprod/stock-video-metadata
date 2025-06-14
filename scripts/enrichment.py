@@ -37,7 +37,7 @@ from langchain.prompts import PromptTemplate
 class VideoEnricher:
     def __init__(
         self,
-        self.llm = MetadataLLM(),
+        llm=None,
         caption_model: str = "Salesforce/blip2-opt-2.7b",
         blip_fallback: str = "Salesforce/blip-image-captioning-base",
         yolo_model: str = "yolov8n.pt",
@@ -46,6 +46,7 @@ class VideoEnricher:
         clip_model: str = "ViT-B/32",
         clip_threshold: float = 0.3,
     ):
+        self.llm = llm if llm is not None else MetadataLLM()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         openai.api_key = os.getenv("OPENAI_API_KEY") or openai.api_key
