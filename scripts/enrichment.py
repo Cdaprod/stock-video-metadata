@@ -32,7 +32,7 @@ class VideoEnricher:
     ):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        openai.api_key = os.getenv("%OPENAI_API_KEY%")
+        openai.api_key = os.getenv("OPENAI_API_KEY") or openai.api_key
         if not openai.api_key:
             print("⚠️ OPENAI_API_KEY not set; metadata steps will be skipped", flush=True)
 
