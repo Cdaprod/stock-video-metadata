@@ -182,7 +182,7 @@ class VideoEnricher:
             "meta_done": True
         }
 
-    def _refine_metadata(self, initial_meta: Dict[str, Any]) -> Dict[str, Any]:
+    def _refine_metadata(self, initial_meta):
         return self.llm.refine_metadata(initial_meta)
 
     def _enrich_one(self, row: Any) -> Dict[str, Any]:
