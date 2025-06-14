@@ -220,7 +220,20 @@ class VideoEnricher:
     def _enrich_one(self, row: Any) -> Dict[str, Any]:
         base = row._asdict()
         path = base["full_path"]
-        best = {}
+        best = {
+            "AI_Description": "",
+            "AI_Keywords": "",
+            "CLIP_Score": "",
+            "CLIP_Pass": "",
+            "YOLO_Objects": "",
+            "Hybrid_Description": "",
+            "OCR_Text": "",
+            "SceneType": "",
+            "SceneObjects": "",
+            "MainAction": "",
+            "SceneMood": "",
+        }
+        # best = {}
         frames = self.extract_scene_frames(path)
         for f in frames:
             img = Image.fromarray(cv2.cvtColor(f, cv2.COLOR_BGR2RGB))
