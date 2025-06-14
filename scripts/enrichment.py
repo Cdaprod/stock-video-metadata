@@ -29,12 +29,15 @@ from scenedetect import detect, ContentDetector
 from keybert import KeyBERT
 from pytesseract import image_to_string
 
+from scripts.llm import MetadataLLM
+
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
 class VideoEnricher:
     def __init__(
         self,
+        self.llm = MetadataLLM(),
         caption_model: str = "Salesforce/blip2-opt-2.7b",
         blip_fallback: str = "Salesforce/blip-image-captioning-base",
         yolo_model: str = "yolov8n.pt",
@@ -180,42 +183,7 @@ class VideoEnricher:
         }
 
     def _refine_metadata(self, initial_meta: Dict[str, Any]) -> Dict[str, Any]:
-        """Use multi-modal RAG with LCEL for final metadata refinement."""
-        prompt_template = PromptTemplate.from_template("""
-        Refine this video metadata into a concise, accurate description:
-        
-        Caption: {caption}
-        YOLO Objects: {yolo_objects}
-        OCR Text: {ocr_text}
-        SceneType: {scene_type}
-        MainAction: {main_action}
-        SceneMood: {scene_mood}
-        
-        Produce:
-        - Description: 15–200 chars, at least 5 words.
-        - Keywords: 8–49 unique words separated by commas.
-        - Category: one of ["Nature", "Infrastructure", "People", "Business", "Technology", "Culture"].
-        - Title: short, under 100 chars.
-        
-        Output JSON only.
-        """)
-        
-        llm = ChatOpenAI(model="gpt-4o", temperature=0.3)
-        filled_prompt = prompt_template.format(
-            caption=initial_meta["AI_Description"],
-            yolo_objects=initial_meta["YOLO_Objects"],
-            ocr_text=initial_meta.get("OCR_Text", ""),
-            scene_type=initial_meta["SceneType"],
-            main_action=initial_meta["MainAction"],
-            scene_mood=initial_meta["SceneMood"]
-        )
-        response = llm.invoke(filled_prompt)
-        try:
-            refined_meta = json.loads(response.content)
-        except json.JSONDecodeError:
-            refined_meta = {}
-        
-        return refined_meta
+        return self.llm.refine_metadata(initial_meta)
 
     def _enrich_one(self, row: Any) -> Dict[str, Any]:
         base = row._asdict()
