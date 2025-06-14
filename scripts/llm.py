@@ -3,7 +3,7 @@
 import os
 import json
 
-# Monkey-patch OpenAI if needed
+# --- OpenAI monkey-patch for legacy proxy issues ---
 try:
     import openai
     from openai._base_client import SyncHttpxClientWrapper
@@ -13,20 +13,19 @@ try:
                 kwargs.pop("proxies", None)
                 super().__init__(*args, **kwargs)
         openai._base_client.SyncHttpxClientWrapper = NoProxiesWrapper
-    # Import OpenAI error if available for targeted excepts
+    # Import OpenAI error for fine-grained excepts
     try:
         OpenAIRateLimitError = openai.error.RateLimitError
     except Exception:
         OpenAIRateLimitError = Exception
 except Exception as e:
-    print(f"OpenAI patch failed (may be unnecessary): {e}")
+    print(f"\n[llm.py] ⚠️ OpenAI monkey-patch failed (may be unnecessary): {e}\n", flush=True)
     OpenAIRateLimitError = Exception
 
-# LangChain for OpenAI
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
-# Optional: local llama-cpp model
+# --- Load local llama-cpp model if available ---
 LOCAL_LLM_OK = False
 llama_llm = None
 try:
@@ -39,16 +38,18 @@ try:
         verbose=False,
     )
     LOCAL_LLM_OK = True
+    print(f"[llm.py] 🦙 Local Llama model loaded: {LOCAL_LLM_PATH}\n", flush=True)
 except Exception as e:
-    print(f"⚠️ Local LLM not available: {e}")
+    print(f"[llm.py] ⚠️ Local LLM not available: {e}\n", flush=True)
 
 class MetadataLLM:
     def __init__(self, openai_model="gpt-4o", local_llm_ok=LOCAL_LLM_OK):
         self.openai_model = openai_model
         self.local_llm_ok = local_llm_ok
-        self.llama_llm = llama_llm  # could allow passing in a custom instance
+        self.llama_llm = llama_llm
 
     def _local_llm_infer(self, prompt, max_tokens=256, temperature=0.3):
+        print(f"\n[llm.py] 🦙 Invoking local Llama.cpp LLM...", flush=True)
         if not self.llama_llm:
             raise RuntimeError("llama-cpp LLM is not loaded")
         resp = self.llama_llm(
@@ -57,11 +58,12 @@ class MetadataLLM:
             temperature=temperature,
             stop=["\n\n", "Output JSON only."]
         )
-        # llama.cpp returns a dict with "choices"
         text = resp["choices"][0]["text"]
+        print(f"[llm.py] 🦙 Local LLM raw response: {text[:100]}...", flush=True)
         return text
 
     def refine_metadata(self, meta: dict) -> dict:
+        print(f"\n[llm.py] 📝 Starting metadata refinement...", flush=True)
         prompt_template = PromptTemplate.from_template("""
         Refine this video metadata into a concise, accurate description:
         Caption: {caption}
@@ -80,7 +82,7 @@ class MetadataLLM:
         Output JSON only.
         """)
 
-        # Defensive defaults
+        # Defensive defaults for safety
         meta = {k: meta.get(k, "") for k in [
             "AI_Description", "YOLO_Objects", "OCR_Text",
             "SceneType", "MainAction", "SceneMood"
@@ -94,24 +96,62 @@ class MetadataLLM:
             scene_mood=meta["SceneMood"]
         )
 
-        ## Try OpenAI first, catch specific rate/HTTP errors and any exception
+        # ---- Try OpenAI LLM ----
         try:
+            print(f"[llm.py] 🤖 Invoking OpenAI ({self.openai_model})...", flush=True)
             llm = ChatOpenAI(model=self.openai_model, temperature=0.3)
             response = llm.invoke(prompt)
-            return json.loads(response.content)
+            print(f"[llm.py] ✅ OpenAI LLM responded", flush=True)
+            result = json.loads(response.content)
+            print(f"[llm.py] 📝 OpenAI refined metadata: {result}", flush=True)
+            return result
         except OpenAIRateLimitError as e:
-            print(f"⚠️ OpenAI quota/rate limit hit: {e}. Falling back to local LLM.")
+            print(f"[llm.py] ⏳ OpenAI quota/rate limit hit: {e}. Falling back to local LLM.", flush=True)
         except Exception as e:
-            print(f"⚠️ OpenAI or LangChain error: {e}. Falling back to local LLM (if available).")
+            print(f"[llm.py] ⚠️ OpenAI or LangChain error: {e}. Falling back to local LLM (if available).", flush=True)
 
-        # Fallback: Local LLM
+        # ---- Fallback: Local Llama.cpp ----
         if self.local_llm_ok and self.llama_llm is not None:
             try:
                 local_response = self._local_llm_infer(prompt)
-                return json.loads(local_response)
+                result = json.loads(local_response)
+                print(f"[llm.py] 📝 Local LLM refined metadata: {result}", flush=True)
+                return result
             except Exception as e:
-                print(f"⚠️ Local LLM failed: {e}")
+                print(f"[llm.py] ❌ Local LLM failed: {e}\n", flush=True)
                 return {}
         else:
-            print("⚠️ No LLM backend available.")
+            print("[llm.py] 🚫 No LLM backend available.", flush=True)
             return {}
+
+    # --- (OPTIONAL) LangChain Expression Language pattern ---
+    # To use LCEL's RunnableWithFallbacks, comment out the above .refine_metadata
+    # and use a chain like this (uncomment to try!):
+    #
+    # from langchain_core.runnables import RunnableLambda
+    # from langchain_core.runnables import RunnableWithFallbacks
+    #
+    # def openai_refine(prompt: str) -> str:
+    #     llm = ChatOpenAI(model="gpt-4o", temperature=0.3)
+    #     return llm.invoke(prompt).content
+    #
+    # def llama_refine(prompt: str) -> str:
+    #     if llama_llm is None:
+    #         raise RuntimeError("Local Llama LLM not loaded")
+    #     resp = llama_llm(prompt, max_tokens=256, temperature=0.3)
+    #     return resp["choices"][0]["text"]
+    #
+    # main_runnable = RunnableLambda(openai_refine)
+    # fallback_runnables = []
+    # if LOCAL_LLM_OK:
+    #     fallback_runnables = [RunnableLambda(llama_refine)]
+    # meta_refiner = main_runnable.with_fallbacks(
+    #     fallback_runnables, exceptions_to_handle=(Exception,)
+    # )
+    #
+    # def refine_metadata(self, meta: dict) -> dict:
+    #     prompt = ... # build prompt as above
+    #     text = meta_refiner.invoke(prompt)
+    #     return json.loads(text)
+
+# End of llm.py
