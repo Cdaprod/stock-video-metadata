@@ -3,7 +3,7 @@
 import os
 import json
 
-# Monkey-patch OpenAI if needed (as described earlier)
+# Monkey-patch OpenAI if needed
 try:
     import openai
     from openai._base_client import SyncHttpxClientWrapper
@@ -13,8 +13,14 @@ try:
                 kwargs.pop("proxies", None)
                 super().__init__(*args, **kwargs)
         openai._base_client.SyncHttpxClientWrapper = NoProxiesWrapper
+    # Import OpenAI error if available for targeted excepts
+    try:
+        OpenAIRateLimitError = openai.error.RateLimitError
+    except Exception:
+        OpenAIRateLimitError = Exception
 except Exception as e:
     print(f"OpenAI patch failed (may be unnecessary): {e}")
+    OpenAIRateLimitError = Exception
 
 # LangChain for OpenAI
 from langchain.chat_models import ChatOpenAI
@@ -88,13 +94,15 @@ class MetadataLLM:
             scene_mood=meta["SceneMood"]
         )
 
-        # Try OpenAI first
+        ## Try OpenAI first, catch specific rate/HTTP errors and any exception
         try:
             llm = ChatOpenAI(model=self.openai_model, temperature=0.3)
             response = llm.invoke(prompt)
             return json.loads(response.content)
+        except OpenAIRateLimitError as e:
+            print(f"⚠️ OpenAI quota/rate limit hit: {e}. Falling back to local LLM.")
         except Exception as e:
-            print(f"⚠️ OpenAI failed: {e}. Falling back to local LLM (if available).")
+            print(f"⚠️ OpenAI or LangChain error: {e}. Falling back to local LLM (if available).")
 
         # Fallback: Local LLM
         if self.local_llm_ok and self.llama_llm is not None:
