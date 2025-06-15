@@ -2,6 +2,7 @@
 
 import os
 import json
+import requests
 
 # --- OpenAI monkey-patch for legacy proxy issues ---
 try:
@@ -13,54 +14,48 @@ try:
                 kwargs.pop("proxies", None)
                 super().__init__(*args, **kwargs)
         openai._base_client.SyncHttpxClientWrapper = NoProxiesWrapper
-    # Import OpenAI error for fine-grained excepts
     try:
         OpenAIRateLimitError = openai.error.RateLimitError
     except Exception:
         OpenAIRateLimitError = Exception
 except Exception as e:
-    print(f"\n[llm.py] ⚠️ OpenAI monkey-patch failed (may be unnecessary): {e}\n", flush=True)
+    print(f"\n[llm.py] ⚠️ OpenAI monkey-patch failed: {e}\n", flush=True)
     OpenAIRateLimitError = Exception
 
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
-# --- Load local llama-cpp model if available ---
-LOCAL_LLM_OK = False
-llama_llm = None
-try:
-    from llama_cpp import Llama
-    LOCAL_LLM_PATH = os.getenv("LOCAL_LLM_PATH", "models/llama-2-7b-chat.Q4_K_M.gguf")
-    llama_llm = Llama(
-        model_path=LOCAL_LLM_PATH,
-        n_ctx=2048,
-        n_threads=8,
-        verbose=False,
-    )
-    LOCAL_LLM_OK = True
-    print(f"[llm.py] 🦙 Local Llama model loaded: {LOCAL_LLM_PATH}\n", flush=True)
-except Exception as e:
-    print(f"[llm.py] ⚠️ Local LLM not available: {e}\n", flush=True)
+# --- Llama.cpp HTTP fallback settings ---
+LLAMA_SERVER_URL = os.getenv("LLAMA_CPP_URL", "http://127.0.0.1:8000")
 
 class MetadataLLM:
-    def __init__(self, openai_model="gpt-4o", local_llm_ok=LOCAL_LLM_OK):
+    def __init__(self, openai_model="gpt-4o", llama_server_url=LLAMA_SERVER_URL):
         self.openai_model = openai_model
-        self.local_llm_ok = local_llm_ok
-        self.llama_llm = llama_llm
+        self.llama_server_url = llama_server_url
 
-    def _local_llm_infer(self, prompt, max_tokens=256, temperature=0.3):
-        print(f"\n[llm.py] 🦙 Invoking local Llama.cpp LLM...", flush=True)
-        if not self.llama_llm:
-            raise RuntimeError("llama-cpp LLM is not loaded")
-        resp = self.llama_llm(
-            prompt,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            stop=["\n\n", "Output JSON only."]
-        )
-        text = resp["choices"][0]["text"]
-        print(f"[llm.py] 🦙 Local LLM raw response: {text[:100]}...", flush=True)
-        return text
+    def _llama_cpp_http_infer(self, prompt: str, max_tokens: int = 256, temperature: float = 0.3) -> str:
+        """
+        Calls a running llama.cpp server for inference via HTTP.
+        Returns the raw text output (expected to be JSON).
+        """
+        print(f"\n[llm.py] 🦙 Invoking llama.cpp HTTP API at {self.llama_server_url}/completion ...", flush=True)
+        try:
+            resp = requests.post(
+                f"{self.llama_server_url}/completion",
+                json={
+                    "prompt": prompt,
+                    "n_predict": max_tokens,
+                    "temperature": temperature
+                },
+                timeout=120
+            )
+            resp.raise_for_status()
+            text = resp.json().get("content", "")
+            print(f"[llm.py] 🦙 llama.cpp HTTP raw response: {text[:100]}...", flush=True)
+            return text
+        except Exception as e:
+            print(f"[llm.py] 🚫 llama.cpp HTTP error: {e}\n", flush=True)
+            return ""
 
     def refine_metadata(self, meta: dict) -> dict:
         print(f"\n[llm.py] 📝 Starting metadata refinement...", flush=True)
@@ -74,6 +69,7 @@ class MetadataLLM:
         SceneMood: {scene_mood}
 
         Produce:
+        - Filename
         - Description: 15–200 chars, at least 5 words.
         - Keywords: 8–49 unique words separated by commas.
         - Category: one of ["Nature", "Infrastructure", "People", "Business", "Technology", "Culture"].
@@ -106,23 +102,19 @@ class MetadataLLM:
             print(f"[llm.py] 📝 OpenAI refined metadata: {result}", flush=True)
             return result
         except OpenAIRateLimitError as e:
-            print(f"[llm.py] ⏳ OpenAI quota/rate limit hit: {e}. Falling back to local LLM.", flush=True)
+            print(f"[llm.py] ⏳ OpenAI quota/rate limit hit: {e}. Falling back to llama.cpp HTTP.", flush=True)
         except Exception as e:
-            print(f"[llm.py] ⚠️ OpenAI or LangChain error: {e}. Falling back to local LLM (if available).", flush=True)
+            print(f"[llm.py] ⚠️ OpenAI or LangChain error: {e}. Falling back to llama.cpp HTTP.", flush=True)
 
-        # ---- Fallback: Local Llama.cpp ----
-        if self.local_llm_ok and self.llama_llm is not None:
-            try:
-                local_response = self._local_llm_infer(prompt)
-                result = json.loads(local_response)
-                print(f"[llm.py] 📝 Local LLM refined metadata: {result}", flush=True)
-                return result
-            except Exception as e:
-                print(f"[llm.py] ❌ Local LLM failed: {e}\n", flush=True)
-                return {}
-        else:
-            print("[llm.py] 🚫 No LLM backend available.", flush=True)
-            return {}
+        # ---- Fallback: llama.cpp HTTP API ----
+        text = self._llama_cpp_http_infer(prompt)
+        try:
+            result = json.loads(text)
+            print(f"[llm.py] 📝 llama.cpp HTTP refined metadata: {result}", flush=True)
+            return result
+        except Exception as e:
+            print(f"[llm.py] ❌ llama.cpp HTTP JSON decode failed: {e}\nRaw output: {text}\n", flush=True)
+            return {"raw_output": text or ""}
 
     # --- (OPTIONAL) LangChain Expression Language pattern ---
     # To use LCEL's RunnableWithFallbacks, comment out the above .refine_metadata
