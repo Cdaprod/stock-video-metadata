@@ -57,64 +57,78 @@ class MetadataLLM:
             print(f"[llm.py] 🚫 llama.cpp HTTP error: {e}\n", flush=True)
             return ""
 
-    def refine_metadata(self, meta: dict) -> dict:
-        print(f"\n[llm.py] 📝 Starting metadata refinement...", flush=True)
-        prompt_template = PromptTemplate.from_template("""
-        Refine this video metadata into a concise, accurate description:
-        Caption: {caption}
-        YOLO Objects: {yolo_objects}
-        OCR Text: {ocr_text}
-        SceneType: {scene_type}
-        MainAction: {main_action}
-        SceneMood: {scene_mood}
+        def refine_metadata(self, meta: dict, max_attempts=1) -> dict:
+            print(f"\n[llm.py] 📝 Starting metadata refinement...", flush=True)
+            prompt_template = PromptTemplate.from_template("""
+            Refine this video metadata into a concise, accurate description:
+            Caption: {caption}
+            YOLO Objects: {yolo_objects}
+            OCR Text: {ocr_text}
+            SceneType: {scene_type}
+            MainAction: {main_action}
+            SceneMood: {scene_mood}
 
-        Produce:
-        - Filename
-        - Description: 15–200 chars, at least 5 words.
-        - Keywords: 8–49 unique words separated by commas.
-        - Category: one of ["Nature", "Infrastructure", "People", "Business", "Technology", "Culture"].
-        - Title: short, under 100 chars.
+            Produce:
+            - Filename
+            - Description: 15–200 chars, at least 5 words.
+            - Keywords: 8–49 unique words separated by commas.
+            - Category: one of ["Nature", "Infrastructure", "People", "Business", "Technology", "Culture"].
+            - Title: short, under 100 chars.
 
-        Output JSON only.
-        """)
+            Output JSON only.
+            """)
 
-        # Defensive defaults for safety
-        meta = {k: meta.get(k, "") for k in [
-            "AI_Description", "YOLO_Objects", "OCR_Text",
-            "SceneType", "MainAction", "SceneMood"
-        ]}
-        prompt = prompt_template.format(
-            caption=meta["AI_Description"],
-            yolo_objects=meta["YOLO_Objects"],
-            ocr_text=meta.get("OCR_Text", ""),
-            scene_type=meta["SceneType"],
-            main_action=meta["MainAction"],
-            scene_mood=meta["SceneMood"]
-        )
+            # Defensive defaults for safety
+            meta = {k: meta.get(k, "") for k in [
+                "AI_Description", "YOLO_Objects", "OCR_Text",
+                "SceneType", "MainAction", "SceneMood"
+            ]}
+            prompt = prompt_template.format(
+                caption=meta["AI_Description"],
+                yolo_objects=meta["YOLO_Objects"],
+                ocr_text=meta.get("OCR_Text", ""),
+                scene_type=meta["SceneType"],
+                main_action=meta["MainAction"],
+                scene_mood=meta["SceneMood"]
+            )
 
-        # ---- Try OpenAI LLM ----
-        try:
-            print(f"[llm.py] 🤖 Invoking OpenAI ({self.openai_model})...", flush=True)
-            llm = ChatOpenAI(model=self.openai_model, temperature=0.3)
-            response = llm.invoke(prompt)
-            print(f"[llm.py] ✅ OpenAI LLM responded", flush=True)
-            result = json.loads(response.content)
-            print(f"[llm.py] 📝 OpenAI refined metadata: {result}", flush=True)
-            return result
-        except OpenAIRateLimitError as e:
-            print(f"[llm.py] ⏳ OpenAI quota/rate limit hit: {e}. Falling back to llama.cpp HTTP.", flush=True)
-        except Exception as e:
-            print(f"[llm.py] ⚠️ OpenAI or LangChain error: {e}. Falling back to llama.cpp HTTP.", flush=True)
+            # Try OpenAI first
+            for attempt in range(max_attempts):
+                try:
+                    print(f"[llm.py] 🤖 Invoking OpenAI ({self.openai_model})...", flush=True)
+                    llm = ChatOpenAI(model=self.openai_model, temperature=0.3)
+                    response = llm.invoke(prompt)
+                    print(f"[llm.py] ✅ OpenAI LLM responded", flush=True)
+                    result = json.loads(response.content)
+                    print(f"[llm.py] 📝 OpenAI refined metadata: {result}", flush=True)
+                    return result
+                except OpenAIRateLimitError as e:
+                    print(f"[llm.py] ⏳ OpenAI quota/rate limit hit: {e}. Falling back to llama.cpp HTTP.", flush=True)
+                    break  # Don't retry OpenAI for quota issues
+                except Exception as e:
+                    print(f"[llm.py] ⚠️ OpenAI or LangChain error: {e}.", flush=True)
+                    if attempt < max_attempts - 1:
+                        print(f"[llm.py] Retrying OpenAI ({attempt+1}/{max_attempts})...", flush=True)
+                        continue
+                    else:
+                        print(f"[llm.py] OpenAI attempts exhausted, falling back to llama.cpp HTTP.", flush=True)
 
-        # ---- Fallback: llama.cpp HTTP API ----
-        text = self._llama_cpp_http_infer(prompt)
-        try:
-            result = json.loads(text)
-            print(f"[llm.py] 📝 llama.cpp HTTP refined metadata: {result}", flush=True)
-            return result
-        except Exception as e:
-            print(f"[llm.py] ❌ llama.cpp HTTP JSON decode failed: {e}\nRaw output: {text}\n", flush=True)
-            return {"raw_output": text or ""}
+            # Fallback: llama.cpp HTTP API (single attempt, never loop here)
+            text = self._llama_cpp_http_infer(prompt)
+            if not text.strip():
+                print("[llm.py] 🚨 llama.cpp HTTP returned empty response!", flush=True)
+                return {"error": "llama.cpp HTTP empty response"}
+            # Heuristic: if llama.cpp response contains "Example output" or "Please provide"
+            if "Example" in text or "Please provide" in text:
+                print("[llm.py] 🚨 llama.cpp returned a template/example response. Not usable.", flush=True)
+                return {"error": "llama.cpp HTTP returned example/template"}
+            try:
+                result = json.loads(text)
+                print(f"[llm.py] 📝 llama.cpp HTTP refined metadata: {result}", flush=True)
+                return result
+            except Exception as e:
+                print(f"[llm.py] ❌ llama.cpp HTTP JSON decode failed: {e}\nRaw output: {text}\n", flush=True)
+                return {"error": "llama.cpp HTTP JSON decode failed", "raw_output": text[:500]}
 
     # --- (OPTIONAL) LangChain Expression Language pattern ---
     # To use LCEL's RunnableWithFallbacks, comment out the above .refine_metadata
