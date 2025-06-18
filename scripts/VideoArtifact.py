@@ -207,13 +207,6 @@ class VideoArtifact(Artifact):
         return hashlib.sha256(data).hexdigest()
     
     ## Curation Functions and Functions from curation.py
-    @classmethod
-    def from_file(cls, file_path, metadata=None):
-        obj = cls(file_path)
-        if metadata:
-            obj.metadata.update(metadata)
-        return obj
-
     def strip_audio(self, output_path: Path = None):
         # ... Strip audio logic ...
         self.metadata["audio_stripped"] = True
@@ -256,99 +249,99 @@ class VideoArtifact(Artifact):
         }
     
 class BatchArtifact(Artifact):
-    """Batch as a coordinating artifact that manages video artifacts"""
-    
+    """
+    Represents a batch of VideoArtifacts for collective processing, tracking, and reporting.
+    """
     def __init__(self, batch_name: str = None, artifact_id: str = None):
         super().__init__(artifact_id)
         self.name = batch_name or f"batch_{self.id[:8]}"
         self.videos: List[VideoArtifact] = []
         self.config: Dict[str, Any] = {}
         self.results: Dict[str, Any] = {}
-        self.source_interface: Optional[str] = None  # 'cli', 'api', 'ios_shortcuts'
-        
-        # Batch processing metrics
+        self.source_interface: Optional[str] = None  # e.g., 'cli', 'api', 'ios_shortcuts'
         self.total_videos = 0
         self.processed_videos = 0
         self.failed_videos = 0
         self.processing_time: Optional[float] = None
-        
+
         self.emit_event('batch_created', {'name': self.name})
-    
+
     def add_video(self, video: VideoArtifact):
-        """Add a video artifact to this batch"""
+        """
+        Add a VideoArtifact to the batch, tracking dependencies and events.
+        """
         self.videos.append(video)
         self.total_videos += 1
-        video.dependencies.append(self.id)  # Video depends on batch
-        
+        video.dependencies.append(self.id)
         self.emit_event('video_added', {
             'video_id': video.id,
             'filename': video.filename,
             'total_videos': self.total_videos
         })
-    
+
     def set_configuration(self, config: Dict[str, Any]):
-        """Set batch processing configuration"""
+        """
+        Set (or update) batch-wide processing configuration.
+        """
         self.config.update(config)
         self.emit_event('configuration_set', config)
-    
+
     def set_source_interface(self, interface: str, interface_data: Dict[str, Any] = None):
-        """Record which interface created this batch"""
+        """
+        Specify which interface created this batch (cli/api/etc).
+        """
         self.source_interface = interface
         self.metadata['source_interface'] = interface
         if interface_data:
             self.metadata['interface_data'] = interface_data
-        
         self.emit_event('source_interface_set', {
             'interface': interface,
             'data': interface_data
         })
-    
+
     def validate(self) -> bool:
-        """Validate batch and all constituent videos"""
+        """
+        Validate the batch and all included videos.
+        """
         if not self.videos:
             self.emit_event('validation_failed', {'reason': 'no_videos'})
             return False
-        
-        # Validate all videos
         invalid_videos = []
         for video in self.videos:
             if not video.validate():
                 invalid_videos.append(video.id)
-        
         if invalid_videos:
             self.emit_event('validation_failed', {
                 'reason': 'invalid_videos',
                 'invalid_video_ids': invalid_videos
             })
             return False
-        
         self.state = ArtifactState.VALIDATED
         self.emit_event('batch_validated', {'video_count': len(self.videos)})
         return True
-    
+
     def start_processing(self):
-        """Begin processing all videos in the batch"""
+        """
+        Mark batch and all videos as processing.
+        """
         if not self.validate():
             return False
-        
         self.state = ArtifactState.PROCESSING
         self.emit_event('batch_processing_started', {
             'video_count': len(self.videos),
             'config': self.config
         })
-        
-        # Start processing each video
         for video in self.videos:
             video.start_processing(self.config)
-        
         return True
-    
+
     def update_video_progress(self, video_id: str, results: Dict[str, Any] = None, error: str = None):
-        """Update progress when a video completes or fails"""
+        """
+        Update status when a video is processed or fails.
+        """
         video = next((v for v in self.videos if v.id == video_id), None)
         if not video:
             return
-        
         if error:
             video.fail_processing(error)
             self.failed_videos += 1
@@ -357,16 +350,14 @@ class BatchArtifact(Artifact):
             video.complete_processing(results or {})
             self.processed_videos += 1
             self.emit_event('video_completed', {'video_id': video_id, 'results': results})
-        
-        # Check if batch is complete
         if self.processed_videos + self.failed_videos == self.total_videos:
             self._complete_batch()
-    
+
     def _complete_batch(self):
-        """Mark batch as complete and generate final results"""
+        """
+        Aggregate results and mark the batch as completed.
+        """
         self.state = ArtifactState.COMPLETED
-        
-        # Aggregate results from all videos
         self.results = {
             'total_videos': self.total_videos,
             'processed_videos': self.processed_videos,
@@ -374,11 +365,12 @@ class BatchArtifact(Artifact):
             'success_rate': self.processed_videos / self.total_videos if self.total_videos > 0 else 0,
             'video_results': {video.id: video.processing_results for video in self.videos}
         }
-        
         self.emit_event('batch_completed', self.results)
-    
+
     def get_processing_summary(self) -> Dict[str, Any]:
-        """Get current processing summary"""
+        """
+        Return processing progress summary as a dict.
+        """
         return {
             'batch_id': self.id,
             'name': self.name,
@@ -389,26 +381,31 @@ class BatchArtifact(Artifact):
             'pending_videos': self.total_videos - self.processed_videos - self.failed_videos,
             'progress_percentage': ((self.processed_videos + self.failed_videos) / self.total_videos * 100) if self.total_videos > 0 else 0
         }
-    
+
     def save_manifest(self, output_dir: str = "./batches") -> str:
-        """Save complete batch artifact to disk"""
+        """
+        Save batch manifest (state and results) as a JSON file.
+        """
         os.makedirs(output_dir, exist_ok=True)
         manifest_path = os.path.join(output_dir, f"{self.id}_manifest.json")
-        
         with open(manifest_path, 'w') as f:
             json.dump(self.to_dict(), f, indent=2, default=str)
-        
         self.emit_event('manifest_saved', {'path': manifest_path})
         return manifest_path
-    
+
     def _handle_event(self, event: ArtifactEvent):
-        """Handle batch-specific events"""
+        """
+        Internal event handler.
+        """
         if event.event_type == 'batch_processing_started':
             self.state = ArtifactState.PROCESSING
         elif event.event_type == 'batch_completed':
             self.state = ArtifactState.COMPLETED
-    
+
     def to_dict(self) -> Dict[str, Any]:
+        """
+        Serialize the batch and all included videos as a dict.
+        """
         return {
             'id': self.id,
             'name': self.name,
@@ -448,6 +445,17 @@ class ArtifactFactory:
             video.metadata.update(metadata)
         video.extract_metadata()
         return video
+    
+    @staticmethod
+    def create_batch_from_folder(folder: str, batch_name: str = None) -> BatchArtifact:
+        batch = BatchArtifact(batch_name)
+        # Support all video files in directory (non-recursive here)
+        for ext in ('.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v'):
+            for file_path in Path(folder).glob(f'*{ext}'):
+                video = ArtifactFactory.create_video_from_path(str(file_path))
+                batch.add_video(video)
+        batch.set_source_interface('folder', {'folder': folder})
+        return batch
     
     @staticmethod
     def create_batch_from_cli(args, file_paths: List[str]) -> BatchArtifact:
