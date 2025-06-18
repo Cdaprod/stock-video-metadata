@@ -25,8 +25,10 @@ LOCAL_VTT_PATH = os.getenv("LOCAL_VTT_PATH", "")
 
 # --- Default SMB root paths ---
 DEFAULT_SMB_ROOTS = [
+    Path(r"B:/Video/StockFootage/"),
     Path(r"B:/Video/StockFootage/Batches"),
     Path(r"B:/Video/StockFootage/Curated"),
+    Path(r"B:/Video/OBSBOT_TINY_2/recordings")
 ]
 
 # --- CONFIG object ---
