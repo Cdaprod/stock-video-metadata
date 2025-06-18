@@ -13,7 +13,7 @@ import hashlib
 from datetime import datetime
 
 class VideoBatchProcessor:
-def **init**(self, root_path="."):
+def __init__(self, root_path="."):
 self.root_path = Path(root_path)
 self.video_extensions = {’.mp4’, ‘.mov’, ‘.avi’, ‘.mkv’, ‘.m4v’, ‘.wmv’, ‘.flv’, ‘.webm’}
 
@@ -128,7 +128,6 @@ with open('workspace_info.json', 'w') as f:
     json.dump(workspace_info, f, indent=2)
 
 print("✅ Workspace analysis complete!")
-```
 
-if **name** == "**main**":
+if __name__ == "__main__":
 main()

@@ -93,24 +93,23 @@ class VideoArtifact(Artifact):
     def __init__(self, filename: str, source_type: str, artifact_id: str = None):
         super().__init__(artifact_id)
         self.filename = filename
-        self.source_type = source_type  # 'file', 'upload', 'stream', 'url'
+        self.source_type = source_type
         self.file_path: Optional[str] = None
         self.file_data: Optional[bytes] = None
         self.file_hash: Optional[str] = None
         self.processing_results: Dict[str, Any] = {}
-        self.dependencies: List[str] = []  # IDs of other artifacts this depends on
-        
-        # Video-specific metadata
+        self.dependencies: List[str] = []
         self.duration: Optional[float] = None
         self.resolution: Optional[tuple] = None
         self.codec: Optional[str] = None
         self.bitrate: Optional[int] = None
         self.frame_rate: Optional[float] = None
-        
+
         self.emit_event('video_created', {
             'filename': filename,
             'source_type': source_type
         })
+        self.metadata = {}
     
     def set_source_data(self, file_path: str = None, file_data: bytes = None):
         """Set the source data for this video artifact"""
@@ -207,6 +206,34 @@ class VideoArtifact(Artifact):
         """Compute SHA256 hash of data"""
         return hashlib.sha256(data).hexdigest()
     
+    ## Curation Functions and Functions from curation.py
+    @classmethod
+    def from_file(cls, file_path, metadata=None):
+        obj = cls(file_path)
+        if metadata:
+            obj.metadata.update(metadata)
+        return obj
+
+    def strip_audio(self, output_path: Path = None):
+        # ... Strip audio logic ...
+        self.metadata["audio_stripped"] = True
+        return self
+
+    def analyze_audio(self):
+        # ... Analyze audio logic ...
+        self.metadata["audio_analysis"] = {...}
+        return self
+
+    def trim_to_voice(self, output_path: Path = None):
+        # ... Trim logic ...
+        self.metadata["trimmed"] = True
+        return self
+
+    def enrich_ai_metadata(self):
+        # ... AI enrichment logic ...
+        self.metadata["ai_enriched"] = {...}
+        return self
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             'id': self.id,
@@ -227,7 +254,7 @@ class VideoArtifact(Artifact):
             'version': self._version,
             'events': self.get_history()
         }
-
+    
 class BatchArtifact(Artifact):
     """Batch as a coordinating artifact that manages video artifacts"""
     
