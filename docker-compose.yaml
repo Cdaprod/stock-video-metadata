@@ -3,7 +3,9 @@ services:
   # Python Notebook Server
   # ------------------------
   enrichment-lab:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.enrichment-lab
     container_name: enrichment-lab
     ports:
       - "8888"
@@ -20,20 +22,26 @@ services:
               capabilities: [gpu]
     runtime: nvidia
 
-  enrich:
+  enrich-api:
     build:
       context: .
       dockerfile: Dockerfile
-    image: enrichment:latest
+    image: enrichment-api:latest
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
     volumes:
-      - ./notebooks:/workspace/notebooks
-      - ./B/Video/StockFootage:/workspace/videos
-      - ./metadata:/workspace/outputs
+      - ./app:/workspace/app
+      - ./scripts:/workspace/scripts
+      - ./metadata:/workspace/metadata
+      - ./data:/workspace/data
     ports:
-      - "8888:8888"
+      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - weaviate
+      - minio
+      - postgres
 
   # ------------------------
   # PostgreSQL for Resolve
