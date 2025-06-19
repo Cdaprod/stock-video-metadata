@@ -1,6 +1,91 @@
-*B:*
-*/.env
-*/__pycache__
-/scripts/__pycache__
-/.env
-/B:*
+# ---- Python cache ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyo
+*.pyd
+
+# ---- Editor junk ----
+.vscode/
+.idea/
+*.iml
+*.sublime-workspace
+*.sublime-project
+
+# ---- Git ----
+.git
+.gitignore
+
+# ---- Notebooks ----
+*.ipynb_checkpoints/
+notebooks/*.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# ---- Env files (usually replaced with Docker secrets/env at runtime) ----
+.env
+.env.*
+*.env
+example.env
+credentials.json
+secrets.json
+
+# ---- Data/output ----
+*.csv
+*.json
+*.xml
+*.sqlite3
+*.db
+*.zip
+*.gz
+*.tar
+*.tar.gz
+*.log
+
+metadata/
+FilmboxData/
+B/
+B:/
+B:/**
+public/index.html
+yolov8n.pt
+
+# ---- Large/Binary files ----
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.flv
+*.wmv
+*.ogg
+*.gif
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+*.bmp
+*.yuv
+*.yuv420p
+*.raw
+*.pt
+
+# ---- Docker ignore itself ----
+docker-compose.override.yaml
+docker-compose.override.yml
+.docker-compose*
+Dockerfile.enrichment-lab
+main.py.disabled
+main.v2.disabled
+scripts/processor.disabled
+
+# ---- Test/coverage ----
+.tox/
+.nox/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---- Misc ----
+# Add more if you have special build/CI output not needed in image
