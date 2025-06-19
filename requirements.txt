@@ -1,12 +1,14 @@
 # requirements.txt
 
-python-dotenv
-sqlalchemy
-psycopg2-binary
-minio
-weaviate-client
-pandas
+fastapi[standard]==0.115.13
+uvicorn[standard]==0.20.0
 
+python-dotenv==1.0.0
+sqlalchemy==2.0.20
+psycopg2-binary==2.9.10
+minio==7.2.15
+weaviate-client==4.12.1
+pandas==2.1.0
 
 # notebook part-3 requirements.txt
 
