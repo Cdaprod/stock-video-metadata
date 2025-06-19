@@ -93,8 +93,8 @@ yolov8n.pt
 
 # ---- Docker ----
 *.pid
-docker-compose.override.yaml
-docker-compose.override.yml
+#docker-compose.override.yaml
+#docker-compose.override.yml
 .docker-compose*
 
 # ---- Coverage/testing ----
