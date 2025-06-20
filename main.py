@@ -1,5 +1,6 @@
 # app/main.py
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -248,6 +249,22 @@ def curate_batch(batch: str = Form("uploads")):
 
 # ── 9️⃣ Health Status "FastAPI " ────────────────────────────────────────────────────────
 @app.get("/health/", response_model=dict)
+def health_check():
+    """
+    Basic health check endpoint.
+    Extend this to include checks for DB, S3, etc as needed.
+    """
+    status = {
+        "status": "ok",
+        "dependencies": {
+            "minio": "unverified",
+            "weaviate": "unverified",
+            "database": "unverified",
+        }
+    }
+    # Optionally, check MinIO, Weaviate, DB status here and set value to "ok" or "error"
+    return JSONResponse(status_code=200, content=status)
+
 
 # -- Docker/production entrypoint --
 def start():

@@ -1,7 +1,11 @@
 # --- Stage 1: CUDA + Python Base ---
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 
-LABEL maintainer="cdaprod.dev"
+LABEL maintainer="cdaprod.dev" \
+      org.opencontainers.image.source="https://github.com/Cdaprod/stock-video-metadata" \
+      org.opencontainers.image.description="FastAPI app for video enrichment API (CUDA-enabled)" \
+      org.opencontainers.image.version="0.1.0"
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -9,8 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl wget unzip ffmpeg libgl1 libglib2.0-0 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && \
-    update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+# Optional: symlink for legacy scripts (python → python3, pip → pip3)
+RUN ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
 
 RUN pip install --upgrade pip wheel setuptools
 

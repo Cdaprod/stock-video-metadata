@@ -1,0 +1,131 @@
+# docker-compose.all-services.yaml
+
+services:
+  # ------------------------
+  # Python Notebook Server
+  # ------------------------
+  enrichment-lab:
+    build:
+      context: .
+      dockerfile: Dockerfile.enrichment-lab
+    container_name: enrichment-lab
+    ports:
+      - "8888"
+    volumes:
+      - ./scripts:/app/scripts
+      - ./metadata:/app/metadata
+      - ./data:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    runtime: nvidia
+
+  enrich-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: enrichment-api:latest
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./app:/workspace/app
+      - ./scripts:/workspace/scripts
+      - ./metadata:/workspace/metadata
+      - ./data:/workspace/data
+    ports:
+      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - weaviate
+      - minio
+      - postgres
+
+  # ------------------------
+  # PostgreSQL for Resolve
+  # ------------------------
+  postgres:
+    image: postgres:15
+    container_name: resolve-db
+    restart: always
+    environment:
+      POSTGRES_DB: resolveLibrary
+      POSTGRES_USER: davinci
+      POSTGRES_PASSWORD: supersecret
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # ------------------------
+  # MinIO (S3-compatible)
+  # ------------------------
+  minio:
+    hostname: minio
+    image: minio/minio
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --address ":9000" --console-address ":9001"
+
+  # ------------------------
+  # Weaviate (no remote APIs)
+  # ------------------------
+  weaviate:
+    hostname: weaviate
+    image: semitechnologies/weaviate:latest
+    ports:
+      - "8082:8080"
+      - "50051:50051"
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      # no builtin vectorizer – use DEFAULT_VECTORIZER_MODULE=none
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      # only backup module – everything else local/embedded
+      ENABLE_MODULES: 'backup-s3'
+      BACKUP_S3_BUCKET: 'weaviate-backups'
+      BACKUP_S3_ENDPOINT: 'minio:9000'
+      BACKUP_S3_ACCESS_KEY_ID: 'minio'
+      BACKUP_S3_SECRET_ACCESS_KEY: 'minio123'
+      BACKUP_S3_USE_SSL: 'false'
+      CLUSTER_HOSTNAME: 'cda-cluster'
+    volumes:
+      - weaviate-data:/var/lib/weaviate
+    depends_on:
+      - minio
+
+  # # ------------------------
+  # # Your Python app
+  # # ------------------------
+  # python-app:
+  #   build:
+  #     context: ./app
+  #     dockerfile: Dockerfile
+  #   image: cdaprod/python-app
+  #   hostname: python-app
+  #   depends_on:
+  #     - weaviate
+  #     - minio
+  #     - postgres
+  #   environment:
+  #     KEEP_CONTAINER_ALIVE: 'true'
+
+volumes:
+  postgres-data:
+    driver: local
+  minio-data:
+    driver: local
+  weaviate-data:
+    driver: local
