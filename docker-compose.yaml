@@ -4,7 +4,7 @@ services:
   enrich-api:
     build:
       context: .
-      dockerfile: ${DOCKERFILE:-Dockerfile.cpu}
+      dockerfile: Dockerfile.cpu
     image: enrichment-api:dev
     container_name: enrich-api-dev
     environment:
