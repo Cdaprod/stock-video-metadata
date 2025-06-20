@@ -13,8 +13,13 @@ REPO_ROOT   = Path(__file__).parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-# ── import the artifact‐based pipeline ────────────────────────────────────────
-from VideoArtifact import ArtifactFactory as BatchFactory, BatchProcessor
+# ── core & facades ────────────────────────────────────────────────────────────
+from VideoArtifact import (
+    ArtifactFactory as BatchFactory,
+    BatchProcessor,
+    VideoArtifact,
+)
+from VideoFacade import VideoFacade          # if in /scripts
 
 # ── import your legacy pipelines ───────────────────────────────────────────────
 from discovery import discover_video_batches, save_inventory
@@ -44,6 +49,20 @@ class PathsPayload(BaseModel):
     paths: List[str]
     batch: Optional[str] = None
 
+# ── manifest → proxy helper ───────────────────────────────────────────────────
+def manifest_to_facade_proxies(manifest_path: Path):
+    """
+    Read a batch manifest JSON, rehydrate each VideoArtifact,
+    wrap in VideoFacade, and return list of MediaProxyArtifact.
+    """
+    if not manifest_path.exists():
+        return None
+    batch_json = json.loads(manifest_path.read_text())
+    proxies = [
+        VideoFacade(artifact=VideoArtifact(**v)).to_proxy()
+        for v in batch_json.get("videos", [])
+    ]
+    return {"batch_id": batch_json.get("id"), "videos": proxies}
 
 # ── 1️⃣ Legacy "upload single file" ────────────────────────────────────────────
 @app.post("/upload/")
@@ -149,7 +168,21 @@ def list_batches():
 def get_batch(batch_id: str):
     manifest = METADATA_DIR / f"{batch_id}_manifest.json"
     if manifest.exists():
-        return json.loads(manifest.read_text())
+        batch_json = json.loads(manifest.read_text())
+        # Wrap each video artifact in a VideoFacade and output as proxy:
+        videos = batch_json.get("videos", [])
+        enhanced_videos = []
+        for v in videos:
+            # Rehydrate VideoArtifact if needed:
+            va = VideoArtifact(**v)
+            facade = VideoFacade(artifact=va)
+            # You could register additional fields dynamically here!
+            proxy_obj = facade.to_proxy()
+            enhanced_videos.append(proxy_obj)
+        # Return enhanced proxy objects in API:
+        batch_json["videos"] = enhanced_videos
+        return batch_json
+
     # fallback: just list files in media/<batch_id>/
     dirp = MEDIA_DIR / batch_id
     if dirp.exists() and dirp.is_dir():
@@ -163,6 +196,15 @@ def get_batch(batch_id: str):
         return {"id": batch_id, "name": batch_id, "videos": videos}
     raise HTTPException(404, f"Batch {batch_id} not found")
 
+
+# ── To let clients retrieve a proxy/facade view of any batch: ───────────────────
+@app.get("/batches/{batch_id}/proxy/")
+def get_batch_proxy(batch_id: str):
+    manifest = METADATA_DIR / f"{batch_id}_manifest.json"
+    data = manifest_to_facade_proxies(manifest)
+    if data is None:
+        raise HTTPException(404, f"Batch {batch_id} not found")
+    return data
 
 # ── 6️⃣ Legacy "discover / inventory" ─────────────────────────────────────────
 @app.post("/discover/")
@@ -203,6 +245,9 @@ def curate_batch(batch: str = Form("uploads")):
         results.append({"video": str(vid), **meta})
     return {"results": results}
 
+
+# ── 9️⃣ Health Status "FastAPI " ────────────────────────────────────────────────────────
+@app.get("/health/", response_model=dict)
 
 # -- Docker/production entrypoint --
 def start():

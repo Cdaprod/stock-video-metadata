@@ -1,0 +1,26 @@
+# ---------------- core api -------------
+fastapi[standard]==0.115.3
+uvicorn[standard]==0.29.0
+python-dotenv==1.0.1
+sqlalchemy==2.0.20
+psycopg2-binary==2.9.9
+minio==7.2.15
+weaviate-client==4.12.1
+pandas==2.2.2
+
+# ---------------- ai stack -------------
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.2.2+cu118
+torchvision==0.17.2+cu118
+
+transformers==4.39.3
+huggingface_hub==0.25.2
+sentence-transformers==2.2.2
+keybert==0.9.0
+tokenizers==0.15.2
+openai-clip
+ultralytics
+scenedetect
+opencv-python
+pillow
+accelerate==0.27.2

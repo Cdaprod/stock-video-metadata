@@ -19,10 +19,10 @@ WORKDIR /workspace
 # Copy code and requirements
 COPY ./app /workspace/app
 COPY ./scripts /workspace/scripts
-COPY requirements.txt /workspace/
+COPY requirements-core.txt /workspace/
 
 # Install production dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-core.txt
 
 EXPOSE 8000
 
