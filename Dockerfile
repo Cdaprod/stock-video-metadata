@@ -17,7 +17,7 @@ RUN pip install --upgrade pip wheel setuptools
 WORKDIR /workspace
 
 # Copy code and requirements
-COPY ./app /workspace/app
+# COPY ./app /workspace/app
 COPY ./scripts /workspace/scripts
 COPY requirements-core.txt /workspace/
 
