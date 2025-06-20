@@ -1,10 +1,11 @@
+# Compose Development Edition
 name: stock-video-metadata-dev
 
 services:
   enrich-api:
     build:
       context: .
-      dockerfile: ${DOCKERFILE:-Dockerfile.cpu}
+      dockerfile: Dockerfile
     image: enrichment-api:dev
     container_name: enrich-api-dev
     environment:
@@ -17,8 +18,7 @@ services:
     ports:
       - "8000:8000"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    runtime: ${RUNTIME:-}  # Set to "nvidia" on GPU only
-    platform: ${PLATFORM:-linux/arm64}
+    runtime: nvidia
     labels:
       com.cdaprod.project: "Blackbox Video Enrichment API"
       com.cdaprod.version: "0.1.0-dev"
@@ -31,3 +31,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+x-project:
+  author: "cdaprod.dev"
+  description: "Dev compose for single FastAPI enrichment API"
+  stack: "FastAPI + Uvicorn + CUDA11.8"
+  services: [enrich-api]
+  volumes: ["./app", "./scripts", "./metadata", "./data"]
