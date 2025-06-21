@@ -4,7 +4,8 @@ services:
   enrich-api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gpu
+      # dockerfile: ${DOCKERFILE:-Dockerfile.cpu}
     image: enrichment-api:dev
     container_name: enrich-api-dev
     environment:
@@ -15,10 +16,10 @@ services:
       - ./metadata:/workspace/metadata
       - ./data:/workspace/data
     ports:
-      - "8000:8000"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    #runtime: ${RUNTIME:-}  # Set to "nvidia" on GPU only
-    #platform: ${PLATFORM:-linux/arm64}
+      - "18000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 18000 --reload
+    runtime: ${RUNTIME:-nvidia}  # Set to "nvidia" on GPU only
+    platform: ${PLATFORM:-linux/arm64}
     labels:
       com.cdaprod.project: "Blackbox Video Enrichment API"
       com.cdaprod.version: "0.1.0-dev"
