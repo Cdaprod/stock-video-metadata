@@ -20,7 +20,7 @@ services:
       - "18000:8000"
     command: uvicorn app.main:app --host 0.0.0.0 --port 18000 --reload
     runtime: ${RUNTIME:-nvidia}  # Set to "nvidia" on GPU only
-    platform: ${PLATFORM:-linux/arm64}
+    platform: ${PLATFORM:-linux/amd64} # Set to arm64 on linux only
     labels:
       com.cdaprod.project: "Blackbox Video Enrichment API"
       com.cdaprod.version: "0.1.0-dev"
