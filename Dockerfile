@@ -15,9 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /workspace
 
 COPY ./scripts /workspace/scripts
-COPY requirements-core.txt /workspace/
+COPY requirements.txt /workspace/
 
-RUN pip install --no-cache-dir -r requirements-core.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -27,6 +27,9 @@ from discovery import discover_video_batches, save_inventory
 from enrichment  import VideoEnricher
 from curation    import extract_audio, curate_clip
 
+# ── Module(s) Imports ─────────────────────────────────────────────────────────────────
+from app.modules.content_pipeline import router as content_router
+
 # ── app + CORS ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="Video Metadata Pipeline API")
 app.add_middleware(
@@ -44,6 +47,7 @@ METADATA_DIR.mkdir(exist_ok=True, parents=True)
 
 # ── shared batch processor ─────────────────────────────────────────────────────
 processor = BatchProcessor()
+
 
 # ── helper Pydantic model for "from-paths" endpoint ────────────────────────────
 class PathsPayload(BaseModel):
@@ -64,6 +68,11 @@ def manifest_to_facade_proxies(manifest_path: Path):
         for v in batch_json.get("videos", [])
     ]
     return {"batch_id": batch_json.get("id"), "videos": proxies}
+
+
+# ── app.modules routers ────────────────────────────────────────────
+app.include_router(content_router)
+
 
 # ── 1️⃣ Legacy "upload single file" ────────────────────────────────────────────
 @app.post("/upload/")

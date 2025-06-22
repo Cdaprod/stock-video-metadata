@@ -1,4 +1,4 @@
-# app/content_pipeline.py
+# app/modules/content_pipeline/content_pipeline.py
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel

@@ -24,10 +24,10 @@ WORKDIR /workspace
 # Copy code and requirements
 # COPY ./app /workspace/app
 COPY ./scripts /workspace/scripts
-COPY requirements-core.txt /workspace/
+COPY requirements.gpu.txt /workspace/
 
 # Install production dependencies
-RUN pip install --no-cache-dir -r requirements-core.txt
+RUN pip install --no-cache-dir -r requirements.gpu.txt
 
 EXPOSE 8000
 

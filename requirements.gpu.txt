@@ -1,4 +1,6 @@
-# ---------------- core api -------------
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+# API stack
 fastapi[standard]==0.115.3
 uvicorn[standard]==0.29.0
 python-dotenv==1.0.1
@@ -8,8 +10,7 @@ minio==7.2.15
 weaviate-client==4.12.1
 pandas==2.2.2
 
-# ---------------- ai stack -------------
---extra-index-url https://download.pytorch.org/whl/cu118
+# AI stack (CUDA, x86_64 only)
 torch==2.2.2+cu118
 torchvision==0.17.2+cu118
 

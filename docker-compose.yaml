@@ -1,11 +1,12 @@
-name: stock-video-metadata-dev
+name: video-metadata-dev
 
 services:
   enrich-api:
     build:
       context: .
       dockerfile: Dockerfile.gpu
-      # dockerfile: ${DOCKERFILE:-Dockerfile.cpu}
+      #### Dockerfile for CPU and Dockerfile.gpu for GPU
+      # dockerfile: ${DOCKERFILE:-Dockerfile}
     image: enrichment-api:dev
     container_name: enrich-api-dev
     environment:

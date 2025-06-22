@@ -1,38 +1,25 @@
-# requirements.txt
-
-fastapi[standard]==0.115.13
-uvicorn[standard]==0.20.0
-
-python-dotenv==1.0.0
+# API stack
+fastapi[standard]==0.115.3
+uvicorn[standard]==0.29.0
+python-dotenv==1.0.1
 sqlalchemy==2.0.20
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.9
 minio==7.2.15
 weaviate-client==4.12.1
-pandas==2.1.0
+pandas==2.2.2
 
-# notebook part-3 requirements.txt
+# AI stack (CPU, generic, works on ARM)
+torch==2.2.2
+torchvision==0.17.2
 
-# 🧠 Core AI + Torch (CUDA 11.8)
-torch==2.2.2+cu118
-torchvision==0.17.2+cu118
---extra-index-url https://download.pytorch.org/whl/cu118
-
-# 📦 Transformers + BLIP/CLIP/KeyBERT
-transformers==4.31.0
+transformers==4.39.3
 huggingface_hub==0.25.2
 sentence-transformers==2.2.2
 keybert==0.9.0
-tokenizers==0.13.3
+tokenizers==0.15.2
 openai-clip
-
-# 🕵️ Object Detection
 ultralytics
-
-# 🎞️ Scene Detection + Image/Video
 scenedetect
 opencv-python
 pillow
-
-# 🧰 Utilities
-pandas
-accelerate==0.32.1
+accelerate==0.27.2
