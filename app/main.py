@@ -9,12 +9,15 @@ import sys
 import shutil
 import json
 
-# ── allow importing your scripts/ folder ───────────────────────────────────────
-REPO_ROOT   = Path(__file__).parent
-SCRIPTS_DIR = REPO_ROOT / "scripts"
-sys.path.insert(0, str(SCRIPTS_DIR))
+# ── Locate the project root (one level above `app/`) ────────────────────────
+# 1) Locate the project root (one level above `app/`)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# ── core & facades ────────────────────────────────────────────────────────────
+# ── 2) Add both the `scripts/` folder and the project root itself ─────────────
+sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+sys.path.insert(0, str(PROJECT_ROOT))
+
+# ── core & facades ──────────────────────────────────────────────────────────
 from VideoArtifact import (
     ArtifactFactory as BatchFactory,
     BatchProcessor,
@@ -22,12 +25,12 @@ from VideoArtifact import (
 )
 from VideoFacade import VideoFacade          # if in /scripts
 
-# ── import your legacy pipelines ───────────────────────────────────────────────
+# ── import your legacy pipelines ────────────────────────────────────────────
 from discovery import discover_video_batches, save_inventory
 from enrichment  import VideoEnricher
 from curation    import extract_audio, curate_clip
 
-# ── Module(s) Imports ─────────────────────────────────────────────────────────────────
+# ── Module(s) Imports ──────────────────────────────────────────────────────────
 from app.modules.content_pipeline import router as content_router
 
 # ── app + CORS ─────────────────────────────────────────────────────────────────
@@ -40,8 +43,8 @@ app.add_middleware(
 )
 
 # ── directories for media + metadata ──────────────────────────────────────────
-MEDIA_DIR    = REPO_ROOT / "media"
-METADATA_DIR = REPO_ROOT / "metadata"
+MEDIA_DIR    = PROJECT_ROOT / "media"
+METADATA_DIR = PROJECT_ROOT / "metadata"
 MEDIA_DIR.mkdir(exist_ok=True, parents=True)
 METADATA_DIR.mkdir(exist_ok=True, parents=True)
 
