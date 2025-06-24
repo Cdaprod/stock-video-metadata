@@ -22,7 +22,8 @@ except Exception as e:
     print(f"\n[llm.py] ⚠️ OpenAI monkey-patch failed: {e}\n", flush=True)
     OpenAIRateLimitError = Exception
 
-from langchain.chat_models import ChatOpenAI
+#from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
 # --- Llama.cpp HTTP fallback settings ---
