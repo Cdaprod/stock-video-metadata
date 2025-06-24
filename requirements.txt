@@ -22,8 +22,7 @@ ffmpeg-python
 # AI stack (CPU, generic, works on ARM)
 torch==2.2.2
 torchvision==0.17.2
-spacy
-
+spacy==3.5.3
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
 
 openai>=1.6
