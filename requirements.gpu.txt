@@ -10,10 +10,12 @@ minio==7.2.15
 weaviate-client==4.12.1
 pandas==2.2.2
 numpy<2
+pydub==0.25.1
 
 # AI stack (CUDA, x86_64 only)
 torch==2.2.2+cu118
 torchvision==0.17.2+cu118
+spacy
 
 openai>=1.6
 langchain>=0.2
