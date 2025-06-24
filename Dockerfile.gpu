@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN ln -sf /usr/bin/python3 /usr/bin/python && \
     ln -sf /usr/bin/pip3 /usr/bin/pip
 
-RUN pip install --upgrade pip wheel setuptools
+RUN python -m spacy download en_core_web_sm
 
 WORKDIR /workspace
 

@@ -23,7 +23,7 @@ except Exception as e:
     OpenAIRateLimitError = Exception
 
 #from langchain.chat_models import ChatOpenAI
-from langchain_openai import ChatOpenAI
+from langchain_openai.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
 # --- Llama.cpp HTTP fallback settings ---
