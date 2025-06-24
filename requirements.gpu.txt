@@ -19,9 +19,19 @@ huggingface_hub==0.25.2
 sentence-transformers==2.2.2
 keybert==0.9.0
 tokenizers==0.15.2
-openai-clip
 ultralytics
 scenedetect
 opencv-python
 pillow
 accelerate==0.27.2
+
+pytesseract
+
+# Optional python ffmpeg api
+ffmpeg-python
+
+# (prefer over opencv-python for servers)
+opencv-python-headless
+
+# openai-clip
+git+https://github.com/openai/CLIP.git
