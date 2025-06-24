@@ -9,6 +9,7 @@ psycopg2-binary==2.9.9
 minio==7.2.15
 weaviate-client==4.12.1
 pandas==2.2.2
+numpy<2
 
 # AI stack (CUDA, x86_64 only)
 torch==2.2.2+cu118
