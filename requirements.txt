@@ -13,10 +13,11 @@ numpy<2
 torch==2.2.2
 torchvision==0.17.2
 
-openai==1.91.0
-langchain>=0.3.9
-langchain-openai==0.3.25
-langchain-community==0.0.29
+openai>=1.6
+langchain>=0.2
+langchain-openai>=0.2
+langchain-community>=0.0.34
+openai-whisper>=2024.09.30
 
 transformers==4.39.3
 huggingface_hub==0.25.2
