@@ -31,7 +31,9 @@ from enrichment  import VideoEnricher
 from curation    import extract_audio, curate_clip
 
 # ── Module(s) Imports ──────────────────────────────────────────────────────────
-from app.modules.content_pipeline import router as content_router
+from app.modules.content_pipeline.router import router as content_router
+from app.modules.enrich.router import router as enrich_router
+from app.modules.curate.router import router as enrich_router
 
 # ── app + CORS ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="Video Metadata Pipeline API")
@@ -75,7 +77,8 @@ def manifest_to_facade_proxies(manifest_path: Path):
 
 # ── app.modules routers ────────────────────────────────────────────
 app.include_router(content_router)
-
+app.include_router(enrich_router)
+app.include_router(curate_router)
 
 # ── 1️⃣ Legacy "upload single file" ────────────────────────────────────────────
 @app.post("/upload/")
