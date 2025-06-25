@@ -12,7 +12,8 @@ wheel
 ###############################################
 
 numpy==1.24.4
-pydantic==1.10.14           # <1.11.0 for spaCy compat
+# pydantic==1.10.14           # <1.11.0 for spaCy compat
+pydantic>=2.7.4,<3.0.0
 
 ###############################################
 #                API STACK                    #
@@ -30,8 +31,7 @@ uvicorn[standard]==0.29.0
 ###############################################
 
 minio==7.2.15
-#weaviate-client==4.5.4    # downgraded from 4.12.x for pydantic<2
-weaviate-client==3.26.7    # Last major compatible with pydantic 1.x
+weaviate-client==4.12.4
 
 ###############################################
 #           AUDIO / VIDEO UTILITIES           #
