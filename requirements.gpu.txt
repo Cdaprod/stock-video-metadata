@@ -1,61 +1,93 @@
-###############################################
-##           requirements.gpu.txt            ##
-###############################################
-
 --extra-index-url https://download.pytorch.org/whl/cu118
 
-# --------------- BUILD TOOLS ---------------
-
+###############################################
+#               BUILD TOOLS                   #
+###############################################
 cython
 setuptools>=68.0
 wheel
 
-# --------------- API STACK ---------------
+###############################################
+#               CORE LIBRARIES                #
+###############################################
+
+numpy==1.24.4
+pydantic==1.10.14           # <1.11.0 for spaCy compat
+
+###############################################
+#                API STACK                    #
+###############################################
 
 fastapi[standard]==0.115.3
-uvicorn[standard]==0.29.0
 python-dotenv==1.0.1
-sqlalchemy==2.0.20
 psycopg2-binary==2.9.9
-minio==7.2.15
-weaviate-client==4.12.1
 pandas==2.2.2
-numpy==1.24.4
-pydub==0.25.1
+sqlalchemy==2.0.20
+uvicorn[standard]==0.29.0
 
-# For SpaCy compatibility (pydantic<1.11.0)
-pydantic==1.10.14
+###############################################
+#             STORAGE & CLIENTS               #
+###############################################
 
-# ----------- Optional Audio Video -----------
+minio==7.2.15
+weaviate-client==4.5.4      # downgraded from 4.12.x for pydantic<2
 
-librosa
+###############################################
+#           AUDIO / VIDEO UTILITIES           #
+###############################################
+
 ffmpeg-python
+librosa
+pydub==0.25.1
+opencv-python-headless
 
-# -------- AI stack (CUDA, x86_64 only) --------
+###############################################
+#            PYTHON IMAGING                   #
+###############################################
+
+pillow
+
+###############################################
+#               AI + ML (CUDA)                #
+###############################################
 
 torch==2.2.2+cu118
 torchvision==0.17.2+cu118
+
+###############################################
+#         TRANSFORMERS & EMBEDDING            #
+###############################################
+
+accelerate==0.27.2
+huggingface_hub==0.25.2
+keybert==0.9.0
+sentence-transformers==2.2.2
+tokenizers==0.15.2
+transformers==4.39.3
+
+###############################################
+#            COMPUTER VISION                 #
+###############################################
+
+opencv-python   # only if you need GUI; otherwise headless above
+pytesseract
+scenedetect
+ultralytics
+
+###############################################
+#           NATURAL LANGUAGE                  #
+###############################################
+
 spacy==3.5.3
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
 
-openai>=1.6
-#langchain>=0.2
+###############################################
+#          LLM & CHAT ABSTRACTIONS            #
+###############################################
+
+git+https://github.com/openai/CLIP.git
 langchain-core>=0.3.66
 langchain-openai>=0.3.25
 langchain-community>=0.0.34
+openai>=1.6
 openai-whisper>=2024.09.30
-git+https://github.com/openai/CLIP.git
-
-transformers==4.39.3
-huggingface_hub==0.25.2
-sentence-transformers==2.2.2
-keybert==0.9.0
-tokenizers==0.15.2
-ultralytics
-scenedetect
-#opencv-python
-opencv-python-headless
-pillow
-accelerate==0.27.2
-ffmpeg-python
-pytesseract

@@ -1,45 +1,62 @@
-# API stack
-numpy==1.24.4
+###############################################
+##              requirements.txt             ##
+###############################################
+
+# ----------------- Build Tools -----------------
+
+cython
+setuptools>=68.0
+wheel
+
+# ----------------- Core API Stack -----------------
+
 fastapi[standard]==0.115.3
 uvicorn[standard]==0.29.0
 python-dotenv==1.0.1
 sqlalchemy==2.0.20
 psycopg2-binary==2.9.9
 minio==7.2.15
-weaviate-client==4.12.1
+weaviate-client==4.5.4  # Downgraded to avoid conflict with SpaCy's pydantic version
 pandas==2.2.2
+numpy==1.26.4           # Latest stable release in the 1.x series for maximum compatibility
+pydantic==1.10.14       # Required compatibility for SpaCy and FastAPI
 pydub==0.25.1
 
-# Optionsl faster builds snd compat
-cython
-setuptools>=68.0
-wheel
+# ---------------- Optional Audio & Video ----------------
 
-# Optional Audio Video
 librosa
 ffmpeg-python
+opencv-python-headless  # Use headless for server deployments
+pillow
+scenedetect
+pytesseract
 
-# AI stack (CPU, generic, works on ARM)
+# ------------------- AI Stack (CPU) --------------------
+
 torch==2.2.2
 torchvision==0.17.2
 spacy==3.5.3
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
 
 openai>=1.6
-#langchain>=0.2
+openai-whisper>=2024.09.30
+git+https://github.com/openai/CLIP.git
+
+# ---------------- LangChain Stack ----------------
+
 langchain-core>=0.3.66
 langchain-openai>=0.3.25
 langchain-community>=0.0.34
-openai-whisper>=2024.09.30
+
+# ------------------ NLP & Transformers ------------------
 
 transformers==4.39.3
-huggingface_hub==0.25.2
 sentence-transformers==2.2.2
 keybert==0.9.0
 tokenizers==0.15.2
-openai-clip
-ultralytics
-scenedetect
-opencv-python
-pillow
+huggingface_hub==0.25.2
 accelerate==0.27.2
+
+# ------------------ Object Detection --------------------
+
+ultralytics
