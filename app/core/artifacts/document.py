@@ -1,25 +1,22 @@
-# /app/core/artifacts/video.py
-
 from __future__ import annotations
 import hashlib
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any
 
 from .base import Artifact, ArtifactState, ArtifactEventType
 from pydantic.dataclasses import dataclass
 
 @dataclass
-class VideoArtifact(Artifact):
+class DocumentArtifact(Artifact):
     filename: str = ""
     source_type: str = ""
     file_path: Optional[str] = None
     file_hash: Optional[str] = None
-    duration: Optional[float] = None
-    resolution: Optional[Tuple[int, int]] = None
-    codec: Optional[str] = None
-    bitrate: Optional[int] = None
-    frame_rate: Optional[float] = None
+    num_pages: Optional[int] = None
+    content_type: Optional[str] = None
+    language: Optional[str] = None
+    word_count: Optional[int] = None
     processing_results: Dict[str, Any] = None
 
     def __post_init__(self):
@@ -31,7 +28,6 @@ class VideoArtifact(Artifact):
             "source_type": self.source_type
         })
 
-    # ---- API surface as before ----
     def set_source_data(self, *, file_path: Optional[str] = None, file_data: Optional[bytes] = None):
         if file_path:
             self.file_path = file_path
@@ -42,16 +38,16 @@ class VideoArtifact(Artifact):
             self.emit(ArtifactEventType.DATA_ATTACHED, {"bytes": len(file_data), "hash": self.file_hash})
 
     def extract_metadata(self):
-        # Placeholder: real ffprobe logic can go here
-        self.duration = 120.5
-        self.resolution = (1920, 1080)
-        self.codec = "h264"
-        self.bitrate = 5_000_000
-        self.frame_rate = 30.0
+        # Placeholder: real document probing logic
+        self.num_pages = 10
+        self.content_type = "application/pdf"
+        self.language = "en"
+        self.word_count = 2567
         self.emit(ArtifactEventType.METADATA_EXTRACTED, {
-            "duration": self.duration,
-            "resolution": self.resolution,
-            "codec": self.codec,
+            "num_pages": self.num_pages,
+            "content_type": self.content_type,
+            "language": self.language,
+            "word_count": self.word_count,
         })
 
     def validate(self) -> bool:
@@ -59,12 +55,10 @@ class VideoArtifact(Artifact):
             return False
         if self.file_path and not Path(self.file_path).exists():
             return False
-        # Could add hash checks, etc.
         self.state = ArtifactState.VALIDATED
         self.emit(ArtifactEventType.VALIDATED, {"hash": self.file_hash})
         return True
 
-    # ---- Private helpers ----
     def _hash_file(self, path: str) -> str:
         sha256 = hashlib.sha256()
         with open(path, "rb") as fh:
@@ -75,7 +69,6 @@ class VideoArtifact(Artifact):
     def _hash_bytes(self, data: bytes) -> str:
         return hashlib.sha256(data).hexdigest()
 
-    # ---- Event reducer ----
     def _apply(self, event):
         if event.type == ArtifactEventType.PROCESSING_STARTED:
             self.state = ArtifactState.PROCESSING
