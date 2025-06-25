@@ -1,6 +1,17 @@
+###############################################
+##           requirements.gpu.txt            ##
+###############################################
+
 --extra-index-url https://download.pytorch.org/whl/cu118
 
-# API stack
+# --------------- BUILD TOOLS ---------------
+
+cython
+setuptools>=68.0
+wheel
+
+# --------------- API STACK ---------------
+
 fastapi[standard]==0.115.3
 uvicorn[standard]==0.29.0
 python-dotenv==1.0.1
@@ -12,16 +23,16 @@ pandas==2.2.2
 numpy==1.24.4
 pydub==0.25.1
 
-# Optionsl faster builds snd compat
-cython
-setuptools>=68.0
-wheel
+# For SpaCy compatibility (pydantic<1.11.0)
+pydantic==1.10.14
 
-# Optional Audio Video
+# ----------- Optional Audio Video -----------
+
 librosa
 ffmpeg-python
 
-# AI stack (CUDA, x86_64 only)
+# -------- AI stack (CUDA, x86_64 only) --------
+
 torch==2.2.2+cu118
 torchvision==0.17.2+cu118
 spacy==3.5.3
@@ -33,6 +44,7 @@ langchain-core>=0.3.66
 langchain-openai>=0.3.25
 langchain-community>=0.0.34
 openai-whisper>=2024.09.30
+git+https://github.com/openai/CLIP.git
 
 transformers==4.39.3
 huggingface_hub==0.25.2
@@ -41,17 +53,9 @@ keybert==0.9.0
 tokenizers==0.15.2
 ultralytics
 scenedetect
-opencv-python
+#opencv-python
+opencv-python-headless
 pillow
 accelerate==0.27.2
-
-pytesseract
-
-# Optional python ffmpeg api
 ffmpeg-python
-
-# (prefer over opencv-python for servers)
-opencv-python-headless
-
-# openai-clip
-git+https://github.com/openai/CLIP.git
+pytesseract
