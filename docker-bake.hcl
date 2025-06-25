@@ -1,15 +1,15 @@
 group "default" {
-  targets = ["cpu"]
+  targets = ["gpu"]
 }
 
 target "cpu" {
   context    = "."
   dockerfile = "Dockerfile"
-  tags       = ["cdaprod/stock-metadata:cpu"]
+  tags       = ["cdaprod/enrich-api-dev:cpu"]
 }
 
 target "gpu" {
   context    = "."
   dockerfile = "Dockerfile.gpu"
-  tags       = ["cdaprod/stock-metadata:gpu"]
+  tags       = ["cdaprod/enrich-api-dev:gpu"]
 }

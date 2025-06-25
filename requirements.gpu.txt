@@ -30,8 +30,8 @@ uvicorn[standard]==0.29.0
 ###############################################
 
 minio==7.2.15
-#weaviate-client==4.5.4      # downgraded from 4.12.x for pydantic<2
-weaviate-client==3.25.4    # Last major compatible with pydantic 1.x
+#weaviate-client==4.5.4    # downgraded from 4.12.x for pydantic<2
+weaviate-client==3.26.7    # Last major compatible with pydantic 1.x
 
 ###############################################
 #           AUDIO / VIDEO UTILITIES           #
