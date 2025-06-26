@@ -18,23 +18,19 @@ sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # ── core & facades ──────────────────────────────────────────────────────────
-from VideoArtifact import (
-    ArtifactFactory as BatchFactory,
-    BatchProcessor,
-    VideoArtifact,
-)
-from VideoFacade import VideoFacade          # if in /scripts
+# new
+from app.core.artifacts.video import VideoArtifact
+from app.core.factory        import ArtifactFactory as BatchFactory
+from app.core.processor      import BatchProcessor
+from app.core.facades.video_facade import VideoFacade
 
-# ── legacy imports your module pipelines ────────────────────────────────────────────
+# ── Modular pipelines ────────────────────────────────────────────
 # Content pipeline
 from app.modules.content_pipeline.content_pipeline import discover_video_batches, save_inventory
-
 # Enrichment
 from app.modules.enrich.enrichment_pipeline import VideoEnricher
-
 # Curation
 from app.modules.curate.curation_pipeline import extract_audio, curate_clip
-
 
 # ── Module(s) Imports ──────────────────────────────────────────────────────────
 from app.modules.content_pipeline.router import router as content_router
