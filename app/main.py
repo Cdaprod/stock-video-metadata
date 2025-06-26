@@ -26,11 +26,11 @@ from app.core.facades.video_facade import VideoFacade
 
 # ── Modular pipelines ────────────────────────────────────────────
 # Content pipeline
-from app.modules.content_pipeline.content_pipeline import discover_video_batches, save_inventory
+#from app.modules.content_pipeline.content_pipeline import discover_video_batches, save_inventory
 # Enrichment
-from app.modules.enrich.enrichment_pipeline import VideoEnricher
+#from app.modules.enrich.enrichment_pipeline import VideoEnricher
 # Curation
-from app.modules.curate.curation_pipeline import extract_audio, curate_clip
+#from app.modules.curate.curation_pipeline import extract_audio, curate_clip
 
 # ── Module(s) Imports ──────────────────────────────────────────────────────────
 from app.modules.content_pipeline.router import router as content_router
@@ -224,44 +224,44 @@ def get_batch_proxy(batch_id: str):
         raise HTTPException(404, f"Batch {batch_id} not found")
     return data
 
-# ── 6️⃣ Legacy "discover / inventory" ─────────────────────────────────────────
-@app.post("/discover/")
-def discover_batches():
-    batches = discover_video_batches()
-    save_inventory(
-      batches,
-      out_json = METADATA_DIR / "batch_metadata.json",
-      out_csv  = METADATA_DIR / "video_inventory.csv"
-    )
-    return {
-      "batches": list(batches.keys()),
-      "count":   len(batches)
-    }
+# # ── 6️⃣ Legacy "discover / inventory" ─────────────────────────────────────────
+# @app.post("/discover/")
+# def discover_batches():
+#     batches = discover_video_batches()
+#     save_inventory(
+#       batches,
+#       out_json = METADATA_DIR / "batch_metadata.json",
+#       out_csv  = METADATA_DIR / "video_inventory.csv"
+#     )
+#     return {
+#       "batches": list(batches.keys()),
+#       "count":   len(batches)
+#     }
 
 
-# ── 7️⃣ Legacy "enrich" ───────────────────────────────────────────────────────
-@app.post("/enrich/")
-def enrich_inventory():
-    inv_csv = METADATA_DIR / "video_inventory.csv"
-    out_csv = METADATA_DIR / "enriched_videos.csv"
-    enricher = VideoEnricher()
-    import pandas as pd
-    df = pd.read_csv(inv_csv)
-    df_enriched = enricher.enrich_dataframe(df, enriched_csv=str(out_csv))
-    df_enriched.to_csv(out_csv, index=False)
-    return {"status": "enriched", "output_csv": str(out_csv)}
+# # ── 7️⃣ Legacy "enrich" ───────────────────────────────────────────────────────
+# @app.post("/enrich/")
+# def enrich_inventory():
+#     inv_csv = METADATA_DIR / "video_inventory.csv"
+#     out_csv = METADATA_DIR / "enriched_videos.csv"
+#     enricher = VideoEnricher()
+#     import pandas as pd
+#     df = pd.read_csv(inv_csv)
+#     df_enriched = enricher.enrich_dataframe(df, enriched_csv=str(out_csv))
+#     df_enriched.to_csv(out_csv, index=False)
+#     return {"status": "enriched", "output_csv": str(out_csv)}
 
 
-# ── 8️⃣ Legacy "curate" ────────────────────────────────────────────────────────
-@app.post("/curate/")
-def curate_batch(batch: str = Form("uploads")):
-    batch_dir = MEDIA_DIR / batch
-    results = []
-    for vid in batch_dir.iterdir():
-        audio = extract_audio(str(vid))
-        meta  = curate_clip(audio, str(vid), out_dir=str(METADATA_DIR/"curation"))
-        results.append({"video": str(vid), **meta})
-    return {"results": results}
+# # ── 8️⃣ Legacy "curate" ────────────────────────────────────────────────────────
+# @app.post("/curate/")
+# def curate_batch(batch: str = Form("uploads")):
+#     batch_dir = MEDIA_DIR / batch
+#     results = []
+#     for vid in batch_dir.iterdir():
+#         audio = extract_audio(str(vid))
+#         meta  = curate_clip(audio, str(vid), out_dir=str(METADATA_DIR/"curation"))
+#         results.append({"video": str(vid), **meta})
+#     return {"results": results}
 
 
 # ── 9️⃣ Health Status "FastAPI " ────────────────────────────────────────────────────────

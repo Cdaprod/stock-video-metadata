@@ -6,6 +6,7 @@
 cython
 setuptools>=68.0
 wheel
+python-multipart
 
 ###############################################
 #               CORE LIBRARIES                #
