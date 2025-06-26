@@ -2,8 +2,8 @@
 from __future__ import annotations
 from pydantic import BaseModel, Field
 from typing import Dict, Any
-from core.artifacts.video import VideoArtifact
-from core.proxy.media_proxy import MediaProxyArtifact  # your existing model
+from app.core.artifacts.video import VideoArtifact
+from app.core.proxy.media_proxy import MediaProxyArtifact
 
 class VideoFacade(BaseModel):
     artifact: VideoArtifact
