@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class MediaProxyArtifact(BaseModel):
     """
@@ -20,5 +20,4 @@ class MediaProxyArtifact(BaseModel):
     metadata: Dict[str, Any]
     events: List[Dict[str, Any]]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

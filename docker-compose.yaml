@@ -11,6 +11,8 @@ services:
     container_name: enrich-api-dev
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - YOLO_CONFIG_DIR=/workspace/.yolo_config
     volumes:
       - ./app:/workspace/app
       - ./scripts:/workspace/scripts
