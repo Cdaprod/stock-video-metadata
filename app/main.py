@@ -25,15 +25,21 @@ from VideoArtifact import (
 )
 from VideoFacade import VideoFacade          # if in /scripts
 
-# ── import your legacy pipelines ────────────────────────────────────────────
-from discovery import discover_video_batches, save_inventory
-from enrichment  import VideoEnricher
-from curation    import extract_audio, curate_clip
+# ── legacy imports your module pipelines ────────────────────────────────────────────
+# Content pipeline
+from app.modules.content_pipeline.content_pipeline import discover_video_batches, save_inventory
+
+# Enrichment
+from app.modules.enrich.enrichment_pipeline import VideoEnricher
+
+# Curation
+from app.modules.curate.curation_pipeline import extract_audio, curate_clip
+
 
 # ── Module(s) Imports ──────────────────────────────────────────────────────────
 from app.modules.content_pipeline.router import router as content_router
 from app.modules.enrich.router import router as enrich_router
-from app.modules.curate.router import router as enrich_router
+from app.modules.curate.router import router as curate_router
 
 # ── app + CORS ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="Video Metadata Pipeline API")
