@@ -20,13 +20,13 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python && \
 
 WORKDIR /workspace
 
-# --- Copy code and requirements ---
-# --- COPY ./app /workspace/app ---
 COPY ./scripts /workspace/scripts
 COPY requirements.gpu.txt /workspace/
 
 # --- Install production dependencies ---
 RUN pip install --no-cache-dir -r requirements.gpu.txt
+
+COPY ./app /workspace/app
 
 EXPOSE 8000
 

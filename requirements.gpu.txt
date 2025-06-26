@@ -18,7 +18,6 @@ pydantic>=2.7.4,<3.0.0
 #                API STACK                    #
 ###############################################
 
-# fastapi[standard]==0.115.3
 fastapi[standard]==0.110.0
 python-dotenv==1.0.1
 psycopg2-binary==2.9.9
@@ -40,6 +39,7 @@ weaviate-client==4.12.4
 ffmpeg-python
 librosa
 pydub==0.25.1
+# opencv-python   # only if you need GUI; otherwise headless above
 opencv-python-headless
 
 ###############################################
@@ -70,7 +70,6 @@ transformers==4.39.3
 #            COMPUTER VISION                 #
 ###############################################
 
-opencv-python   # only if you need GUI; otherwise headless above
 pytesseract
 scenedetect
 ultralytics
@@ -81,8 +80,6 @@ ultralytics
 
 # spacy==3.5.3
 # en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
-transformers>=4
-keybert>=0.9
 
 ###############################################
 #          LLM & CHAT ABSTRACTIONS            #
