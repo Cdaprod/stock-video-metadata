@@ -1,10 +1,11 @@
 # app/main.py
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body
-from fastapi.responses import JSONResponse
+from fastapi                 import FastAPI, UploadFile, File, Form, HTTPException, Body
+from fastapi.responses       import JSONResponse, HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional
-from pathlib import Path
+from fastapi.staticfiles     import StaticFiles
+from pydantic                import BaseModel
+from typing                  import List, Optiona
+from pathlib                 import Path
 import sys
 import shutil
 import json
@@ -19,9 +20,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # ── core & facades ──────────────────────────────────────────────────────────
 # new
-from app.core.artifacts.video import VideoArtifact
-from app.core.factory        import ArtifactFactory as BatchFactory
-from app.core.processor      import BatchProcessor
+from app.core.artifacts.video      import VideoArtifact
+from app.core.factory              import ArtifactFactory as BatchFactory
+from app.core.processor            import BatchProcessor
 from app.core.facades.video_facade import VideoFacade
 
 # ── Modular pipelines ────────────────────────────────────────────
@@ -34,8 +35,8 @@ from app.core.facades.video_facade import VideoFacade
 
 # ── Module(s) Imports ──────────────────────────────────────────────────────────
 from app.modules.content_pipeline.router import router as content_router
-from app.modules.enrich.router import router as enrich_router
-from app.modules.curate.router import router as curate_router
+from app.modules.enrich.router           import router as enrich_router
+from app.modules.curate.router           import router as curate_router
 
 # ── app + CORS ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="Video Metadata Pipeline API")
@@ -82,6 +83,15 @@ app.include_router(content_router)
 app.include_router(enrich_router)
 app.include_router(curate_router)
 
+
+# ── #️⃣ Mounted Static HTML for root path ────────────────────────────────────────────
+app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "public" / "static")), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    html_path = PROJECT_ROOT / "public" / "static" / "index.html"
+    return HTMLResponse(content=html_path.read_text())
+    
 # ── 1️⃣ Legacy "upload single file" ────────────────────────────────────────────
 @app.post("/upload/")
 async def upload_file(
