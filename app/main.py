@@ -18,20 +18,15 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# ── core & facades ──────────────────────────────────────────────────────────
-# new
+# ── Core & Facades ──────────────────────────────────────────────────────────
 from app.core.artifacts.video      import VideoArtifact
 from app.core.factory              import ArtifactFactory as BatchFactory
 from app.core.processor            import BatchProcessor
 from app.core.facades.video_facade import VideoFacade
 
-# ── Modular pipelines ────────────────────────────────────────────
-# Content pipeline
-#from app.modules.content_pipeline.content_pipeline import discover_video_batches, save_inventory
-# Enrichment
-#from app.modules.enrich.enrichment_pipeline import VideoEnricher
-# Curation
-#from app.modules.curate.curation_pipeline import extract_audio, curate_clip
+# ── Internal Services (svc's) ──────────────────────────────────────────────────────────
+from app.services.video_service import VideoService
+from app.services.batch_service import BatchService
 
 # ── Module(s) Imports ──────────────────────────────────────────────────────────
 from app.modules.content_pipeline.router import router as content_router
@@ -56,6 +51,15 @@ METADATA_DIR.mkdir(exist_ok=True, parents=True)
 # ── shared batch processor ─────────────────────────────────────────────────────
 processor = BatchProcessor()
 
+# ── app.services svc's ────────────────────────────────────────────
+video_svc = VideoService()
+batch_svc = BatchService()
+
+# ── app.modules routers ────────────────────────────────────────────
+app.include_router(content_router)
+app.include_router(enrich_router)
+app.include_router(curate_router)
+
 
 # ── helper Pydantic model for "from-paths" endpoint ────────────────────────────
 class PathsPayload(BaseModel):
@@ -78,12 +82,6 @@ def manifest_to_facade_proxies(manifest_path: Path):
     return {"batch_id": batch_json.get("id"), "videos": proxies}
 
 
-# ── app.modules routers ────────────────────────────────────────────
-app.include_router(content_router)
-app.include_router(enrich_router)
-app.include_router(curate_router)
-
-
 # ── #️⃣ Mounted Static HTML for root path ────────────────────────────────────────────
 app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "public" / "static")), name="static")
 
@@ -92,60 +90,41 @@ async def root():
     html_path = PROJECT_ROOT / "public" / "static" / "index.html"
     return HTMLResponse(content=html_path.read_text())
     
-# ── 1️⃣ Legacy "upload single file" ────────────────────────────────────────────
-@app.post("/upload/")
-async def upload_file(
-    file: UploadFile = File(...),
-    batch: str = Form("uploads")
-):
-    batch_dir = MEDIA_DIR / batch
-    batch_dir.mkdir(exist_ok=True)
-    dest = batch_dir / file.filename
-    with dest.open("wb") as out:
-        shutil.copyfileobj(file.file, out)
-    return {
-        "status":   "uploaded",
-        "batch":    batch,
-        "filename": file.filename,
-        "path":     str(dest)
-    }
+    
+# ── 1️⃣ Upload ONE video (legacy path, now uses VideoService) ────────────────
+@app.post("/upload/", response_model=dict)
+async def upload_file(file: UploadFile = File(...)):
+    """
+    Accept one video and create a standalone VideoArtifact.
+    """
+    data = await file.read()                      # bytes in memory
+    vid_id = video_service.ingest_uploads(
+        uploads=[{"filename": file.filename, "data": data}]
+    )
+    return {"video_id": vid_id, "filename": file.filename} 
 
 
-# ── 2️⃣ New: ingest a batch by upload (your HTML calls this) ──────────────────
-@app.post("/batches/from-upload/")
-async def web_batch_from_upload(
+# ── 2️⃣ Upload a BATCH of videos (HTML form calls this) ──────────────────────
+@app.post("/batches/from-upload/", response_model=dict)
+async def upload_batch(
     files: List[UploadFile] = File(...),
     batch: str = Form("uploads")
 ):
-    # 1) save to MEDIA_DIR
+    """
+    Accept multiple video files, build a BatchArtifact,
+    process it, and persist the manifest.
+    """
     uploads = []
-    batch_dir = MEDIA_DIR / batch
-    batch_dir.mkdir(exist_ok=True, parents=True)
     for f in files:
-        dest = batch_dir / f.filename
-        with dest.open("wb") as out:
-            shutil.copyfileobj(f.file, out)
         uploads.append({
             "filename": f.filename,
-            "data":     dest.read_bytes()
+            "data":     await f.read()
         })
 
-    # 2) create & process the batch artifact
-    batch_artifact = BatchFactory.create_batch_from_api(
-        uploads,
-        config={},
-        request_metadata={"source": "api", "batch": batch}
-    )
-    processor.process_batch(batch_artifact)
-
-    # 3) persist manifest
-    manifest_path = batch_artifact.save_manifest(output_dir=str(METADATA_DIR))
-    return {
-        "batch_id": batch_artifact.id,
-        "manifest": manifest_path
-    }
-
-
+    batch_id = batch_service.ingest_uploads(uploads, batch=batch)
+    return {"batch_id": batch_id}
+    
+    
 # ── 3️⃣ New: ingest a batch by server-side paths ───────────────────────────────
 @app.post("/batches/from-paths/")
 async def web_batch_from_paths(payload: PathsPayload = Body(...)):
@@ -168,72 +147,39 @@ async def web_batch_from_paths(payload: PathsPayload = Body(...)):
     }
 
 
-# ── 4️⃣ List all existing batches ──────────────────────────────────────────────
-@app.get("/batches/")
+# ── 4️⃣ List all existing batches ────────────────────────────────────────────
+@app.get("/batches/", response_model=dict)
 def list_batches():
-    manifests = list(METADATA_DIR.glob("*_manifest.json"))
-    out = []
-    if manifests:
-        for m in manifests:
-            try:
-                j = json.loads(m.read_text())
-                out.append({
-                    "id":   j.get("id"),
-                    "name": j.get("name", j.get("id"))
-                })
-            except:
-                continue
-    else:
-        # fallback: list dirs under media/
-        for d in MEDIA_DIR.iterdir():
-            if d.is_dir():
-                out.append({"id": d.name, "name": d.name})
-    return {"batches": out}
+    """
+    Return lite info (id, name) for every saved batch manifest.
+    """
+    return {"batches": batch_service.list()}
+    
 
-
-# ── 5️⃣ Get one batch’s details ───────────────────────────────────────────────
-@app.get("/batches/{batch_id}/")
+# ── 5️⃣ Get one batch’s details (videos + proxy fields) ──────────────────────
+@app.get("/batches/{batch_id}/", response_model=dict)
 def get_batch(batch_id: str):
-    manifest = METADATA_DIR / f"{batch_id}_manifest.json"
-    if manifest.exists():
-        batch_json = json.loads(manifest.read_text())
-        # Wrap each video artifact in a VideoFacade and output as proxy:
-        videos = batch_json.get("videos", [])
-        enhanced_videos = []
-        for v in videos:
-            # Rehydrate VideoArtifact if needed:
-            va = VideoArtifact(**v)
-            facade = VideoFacade(artifact=va)
-            # You could register additional fields dynamically here!
-            proxy_obj = facade.to_proxy()
-            enhanced_videos.append(proxy_obj)
-        # Return enhanced proxy objects in API:
-        batch_json["videos"] = enhanced_videos
-        return batch_json
-
-    # fallback: just list files in media/<batch_id>/
-    dirp = MEDIA_DIR / batch_id
-    if dirp.exists() and dirp.is_dir():
-        videos = []
-        for vid in dirp.iterdir():
-            videos.append({
-                "filename": vid.name,
-                "full_path": str(vid),
-                "state": "uploaded"
-            })
-        return {"id": batch_id, "name": batch_id, "videos": videos}
-    raise HTTPException(404, f"Batch {batch_id} not found")
-
-
-# ── To let clients retrieve a proxy/facade view of any batch: ───────────────────
-@app.get("/batches/{batch_id}/proxy/")
-def get_batch_proxy(batch_id: str):
-    manifest = METADATA_DIR / f"{batch_id}_manifest.json"
-    data = manifest_to_facade_proxies(manifest)
-    if data is None:
+    """
+    Return the proxy-enhanced manifest for a single batch.
+    """
+    try:
+        return batch_service.get(batch_id)
+    except FileNotFoundError:
         raise HTTPException(404, f"Batch {batch_id} not found")
-    return data
+         
 
+# ── Proxy / raw manifest view ────────────────────────────────────────────────
+@app.get("/batches/{batch_id}/proxy/", response_model=dict)
+def get_batch_manifest(batch_id: str):
+    """
+    Return the original manifest (no proxy transformation).
+    """
+    try:
+        return batch_service.manifest(batch_id)
+    except FileNotFoundError:
+        raise HTTPException(404, f"Batch {batch_id} not found")
+        
+        
 # # ── 6️⃣ Legacy "discover / inventory" ─────────────────────────────────────────
 # @app.post("/discover/")
 # def discover_batches():
