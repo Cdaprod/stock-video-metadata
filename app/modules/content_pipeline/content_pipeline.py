@@ -1,21 +1,19 @@
 # app/modules/content_pipeline/content_pipeline.py
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-from pathlib import Path
+from fastapi            import UploadFile, File, Form, HTTPException, BackgroundTasks
+from fastapi.responses  import JSONResponse
+from pydantic           import BaseModel
+from typing             import List, Optional, Dict, Any
+from pathlib            import Path
 import json
 import cv2
 import pytesseract
 import subprocess
 import tempfile
-from datetime import datetime
+from datetime           import datetime
 
 # Import your existing components
-from VideoFacade import VideoFacade
-from VideoArtifact import VideoArtifact
-
-router = APIRouter(prefix="/content", tags=["content-creation"])
+from app.core.facades.video_facade  import VideoFacade
+from app.core.artifacts.video       import VideoArtifact
 
 # ── Need to work out prompt from frame text extraction ───────────────────────
 

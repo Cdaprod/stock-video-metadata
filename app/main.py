@@ -98,7 +98,7 @@ async def upload_file(file: UploadFile = File(...)):
     Accept one video and create a standalone VideoArtifact.
     """
     data = await file.read()                      # bytes in memory
-    vid_id = video_service.ingest_uploads(
+    vid_id = video_svc.ingest_uploads(
         uploads=[{"filename": file.filename, "data": data}]
     )
     return {"video_id": vid_id, "filename": file.filename} 
@@ -121,7 +121,7 @@ async def upload_batch(
             "data":     await f.read()
         })
 
-    batch_id = batch_service.ingest_uploads(uploads, batch=batch)
+    batch_id = batch_svc.ingest_uploads(uploads, batch=batch)
     return {"batch_id": batch_id}
     
     
@@ -142,8 +142,8 @@ async def web_batch_from_paths(payload: PathsPayload = Body(...)):
     processor.process_batch(batch_artifact)
     manifest_path = batch_artifact.save_manifest(output_dir=str(METADATA_DIR))
     return {
-        "batch_id": batch_artifact.id,
-        "manifest": manifest_path
+      "batch_id": batch_artifact.id,
+      "manifest": str(manifest_path)
     }
 
 
@@ -163,19 +163,19 @@ def get_batch(batch_id: str):
     Return the proxy-enhanced manifest for a single batch.
     """
     try:
-        return batch_service.get(batch_id)
+        return batch_svc.get(batch_id)
     except FileNotFoundError:
         raise HTTPException(404, f"Batch {batch_id} not found")
          
 
-# ── Proxy / raw manifest view ────────────────────────────────────────────────
+# ── 6️⃣ Proxy / raw manifest view ────────────────────────────────────────────────
 @app.get("/batches/{batch_id}/proxy/", response_model=dict)
 def get_batch_manifest(batch_id: str):
     """
     Return the original manifest (no proxy transformation).
     """
     try:
-        return batch_service.manifest(batch_id)
+        return batch_svc.manifest(batch_id)
     except FileNotFoundError:
         raise HTTPException(404, f"Batch {batch_id} not found")
         

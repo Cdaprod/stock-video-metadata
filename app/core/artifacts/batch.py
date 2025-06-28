@@ -140,3 +140,9 @@ class BatchArtifact(Artifact):
             self.state = ArtifactState.COMPLETED
         elif event.type == ArtifactEventType.PROCESSING_FAILED:
             self.state = ArtifactState.FAILED
+            
+    def save_manifest(self, output_dir: str) -> str:
+        """Serialize to JSON file and return the path."""
+        path = Path(output_dir) / f"{self.id}_manifest.json"
+        path.write_text(json.dumps(self.to_dict(), indent=2))
+        return str(path)

@@ -1,7 +1,8 @@
-# /app/core/artifacts/video.py
-
+/app/core/artifacts/video.py
 from __future__ import annotations
 import hashlib
+import json
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
@@ -31,7 +32,6 @@ class VideoArtifact(Artifact):
             "source_type": self.source_type
         })
 
-    # ---- API surface as before ----
     def set_source_data(self, *, file_path: Optional[str] = None, file_data: Optional[bytes] = None):
         if file_path:
             self.file_path = file_path
@@ -59,10 +59,37 @@ class VideoArtifact(Artifact):
             return False
         if self.file_path and not Path(self.file_path).exists():
             return False
-        # Could add hash checks, etc.
         self.state = ArtifactState.VALIDATED
         self.emit(ArtifactEventType.VALIDATED, {"hash": self.file_hash})
         return True
+
+    def to_dict(self, exclude_none: bool = True) -> Dict[str, Any]:
+        """
+        Serialize to a plain dict. By default, omits None values.
+        """
+        # Try Pydantic’s .dict() if available
+        try:
+            return self.dict(by_alias=True, exclude_none=exclude_none)
+        except Exception:
+            # Fallback for plain dataclasses
+            data = asdict(self)
+            if exclude_none:
+                data = {k: v for k, v in data.items() if v is not None}
+            # Convert JSON-unfriendly types
+            for k, v in data.items():
+                if isinstance(v, Path):
+                    data[k] = str(v)
+                elif isinstance(v, datetime):
+                    data[k] = v.isoformat()
+                elif isinstance(v, tuple):
+                    data[k] = list(v)
+            return data
+
+    def to_json(self, *, exclude_none: bool = True, **kwargs) -> str:
+        """
+        Dump to JSON string. Uses default=str to handle any remaining non-serializable values.
+        """
+        return json.dumps(self.to_dict(exclude_none=exclude_none), default=str, **kwargs)
 
     # ---- Private helpers ----
     def _hash_file(self, path: str) -> str:
