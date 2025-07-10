@@ -27,7 +27,8 @@ except Exception as e:
     OpenAIRateLimitError = Exception
 
 # Use langchain_openai for v0.2+ compatibility
-from langchain_openai.chat_models import ChatOpenAI
+# from langchain_openai.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
 class MetadataLLM:

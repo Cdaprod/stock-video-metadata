@@ -1,0 +1,37 @@
+name: enrich-api-dev-makefile-version
+services:
+  enrich-api:
+    # Build section uses the dockerfile chosen in .env.autogen
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE}
+      args:
+        VERSION: ${VERSION}
+        PROFILE: ${PROFILE}
+    image: ${IMAGE_BASE}:${PROFILE}-${TAG}
+    container_name: enrich-api-${PROFILE}
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - NVIDIA_VISIBLE_DEVICES=${HAS_GPU}
+      - YOLO_CONFIG_DIR=/workspace/.yolo_config
+    volumes:
+      - ./app:/workspace/app
+      - ./scripts:/workspace/scripts
+      - ./metadata:/workspace/metadata
+      - ./data:/workspace/data
+    ports:
+      - "18000:8000"
+    # GPU runtime only when present
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: ${HAS_GPU}
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
